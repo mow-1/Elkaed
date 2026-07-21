@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { COURSES, GRADES } from '../data/courses'
+import { COURSES } from '../data/courses'
 import { getCourses } from '../api/courses'
+import CourseCard, { SkeletonCard } from './CourseCard'
 import styles from './Courses.module.css'
+
+const PREVIEW_COUNT = 6
 
 function mapApiCourse(c) {
   return {
@@ -17,35 +20,22 @@ function mapApiCourse(c) {
   }
 }
 
-function SkeletonCard() {
-  return (
-    <div className={`${styles.card} ${styles.skeleton}`}>
-      <div className={styles.skelImg} />
-      <div className={styles.skelBody}>
-        <div className={styles.skelLine} style={{ width: '60%', height: 14 }} />
-        <div className={styles.skelLine} style={{ width: '90%', height: 18, marginTop: 8 }} />
-        <div className={styles.skelLine} style={{ width: '40%', height: 12, marginTop: 8 }} />
-      </div>
-    </div>
-  )
-}
-
+// Homepage teaser only — a handful of newest courses with a link to the full
+// catalog page (/courses), which has the real filtering/search/pagination.
+// Keeping the homepage from growing without bound as the catalog grows.
 export default function Courses() {
-  const [activeGrade, setActiveGrade] = useState('الكل')
-  const [courses, setCourses] = useState(COURSES)
+  const [courses, setCourses] = useState(COURSES.slice(0, PREVIEW_COUNT))
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getCourses()
+    getCourses('ordering=-created_at')
       .then(res => res.ok ? res.json() : Promise.reject())
-      .then(data => { if (data.results?.length) setCourses(data.results.map(mapApiCourse)) })
+      .then(data => {
+        if (data.results?.length) setCourses(data.results.slice(0, PREVIEW_COUNT).map(mapApiCourse))
+      })
       .catch(() => { /* static fallback already in state */ })
       .finally(() => setLoading(false))
   }, [])
-
-  const filtered = activeGrade === 'الكل'
-    ? courses
-    : courses.filter(c => c.grade === activeGrade)
 
   return (
     <section id="courses" className={styles.section}>
@@ -58,69 +48,17 @@ export default function Courses() {
           </p>
         </div>
 
-        <div className={styles.pills}>
-          {GRADES.map(grade => (
-            <button
-              key={grade}
-              className={`${styles.pill} ${activeGrade === grade ? styles.pillActive : ''}`}
-              onClick={() => setActiveGrade(grade)}
-            >
-              {grade === 'الكل' ? 'كل الصفوف' : 'الصف ' + grade}
-            </button>
-          ))}
-        </div>
-
-        <div className={styles.grid} key={activeGrade}>
+        <div className={styles.grid}>
           {loading
             ? [0, 1, 2].map(i => <SkeletonCard key={i} />)
-            : filtered.map(c => <CourseCard key={c.id} course={c} />)
+            : courses.map(c => <CourseCard key={c.id} course={c} />)
           }
         </div>
 
         <div className={styles.bottomLink}>
-          <a href="#register" className={styles.link}>سجّل دلوقتي وابدأ أول حصة ←</a>
+          <Link to="/courses" className={styles.link}>تصفّح كل الكورسات ←</Link>
         </div>
       </div>
     </section>
   )
-}
-
-function CourseCard({ course: c }) {
-  const inner = (
-    <div className={styles.card}>
-      <div className={styles.imageArea}>
-        <div className={styles.imagePlaceholder}>
-          <span className={styles.imagePlaceholderGlyph}>𓂀</span>
-        </div>
-        {c.img && (
-          <img
-            src={c.img}
-            alt={c.title}
-            className={styles.image}
-            onError={e => { e.currentTarget.style.display = 'none' }}
-          />
-        )}
-        <span className={styles.priceBadge}>{c.price}</span>
-      </div>
-
-      <div className={styles.cardBody}>
-        <div className={styles.teacherRow}>
-          <span className={styles.teacherAvatar}>𓂀</span>
-          <span className={styles.teacherName}>مصطفى عرفة</span>
-          <span className={styles.gradeChip}>الصف {c.grade}</span>
-        </div>
-
-        <h3 className={styles.courseTitle}>{c.title}</h3>
-
-        <div className={styles.cardFooter}>
-          <span>👥 {c.students} طالب</span>
-          <span>{c.lessons} 📖</span>
-        </div>
-      </div>
-    </div>
-  )
-
-  return c.slug
-    ? <Link to={`/courses/${c.slug}`} style={{ display: 'contents' }}>{inner}</Link>
-    : inner
 }

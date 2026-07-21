@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import styles from './Footer.module.css'
 
 export default function Footer() {
@@ -21,7 +22,7 @@ export default function Footer() {
           {/* Quick links */}
           <div className={styles.col}>
             <h4 className={styles.colHeading}>روابط سريعة</h4>
-            <a href="#courses" className={styles.colLink}>الكورسات</a>
+            <Link to="/courses" className={styles.colLink}>الكورسات</Link>
             <a href="#features" className={styles.colLink}>ليه القائد؟</a>
             <a href="#register" className={styles.colLink}>إنشاء حساب</a>
           </div>

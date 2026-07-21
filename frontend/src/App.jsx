@@ -10,6 +10,7 @@ const LoginPage       = lazy(() => import('./pages/LoginPage'))
 const RegisterPage    = lazy(() => import('./pages/RegisterPage'))
 const DashboardPage   = lazy(() => import('./pages/DashboardPage'))
 const PortalPage      = lazy(() => import('./pages/PortalPage'))
+const CoursesListPage  = lazy(() => import('./pages/CoursesListPage'))
 const CourseDetailPage  = lazy(() => import('./pages/CourseDetailPage'))
 const AdminPanelPage   = lazy(() => import('./pages/AdminPanelPage'))
 
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/dashboard" element={<Layout><DashboardPage /></Layout>} />
             <Route path="/portal" element={<Layout><PortalPage /></Layout>} />
+            <Route path="/courses"        element={<Layout><CoursesListPage /></Layout>} />
             <Route path="/courses/:slug"  element={<Layout><CourseDetailPage /></Layout>} />
             <Route path="/admin-panel"   element={<Layout><AdminPanelPage /></Layout>} />
           </Routes>
