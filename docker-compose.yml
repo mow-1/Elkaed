@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [elkaed]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [elkaed]
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      DB_HOST: db
+      REDIS_URL: redis://redis:6379/0
+    depends_on: [db, redis]
+    volumes:
+      - ./backend/staticfiles:/app/staticfiles
+      - ./backend/media:/app/media
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks: [elkaed]
+
+  celery:
+    build: ./backend
+    restart: unless-stopped
+    command: celery -A config worker -l info
+    env_file: .env.prod
+    environment:
+      DB_HOST: db
+      REDIS_URL: redis://redis:6379/0
+    depends_on: [db, redis]
+    networks: [elkaed]
+
+volumes:
+  pgdata:
+
+networks:
+  elkaed:
