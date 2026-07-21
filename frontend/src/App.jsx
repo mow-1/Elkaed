@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { CartProvider } from './context/CartContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import WhatsAppBtn from './components/WhatsAppBtn'
@@ -12,6 +13,7 @@ const DashboardPage   = lazy(() => import('./pages/DashboardPage'))
 const PortalPage      = lazy(() => import('./pages/PortalPage'))
 const CoursesListPage  = lazy(() => import('./pages/CoursesListPage'))
 const CourseDetailPage  = lazy(() => import('./pages/CourseDetailPage'))
+const CheckoutPage    = lazy(() => import('./pages/CheckoutPage'))
 const AdminPanelPage   = lazy(() => import('./pages/AdminPanelPage'))
 
 function PageLoader() {
@@ -36,20 +38,23 @@ function Layout({ children }) {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Layout><LandingPage /></Layout>} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/dashboard" element={<Layout><DashboardPage /></Layout>} />
-            <Route path="/portal" element={<Layout><PortalPage /></Layout>} />
-            <Route path="/courses"        element={<Layout><CoursesListPage /></Layout>} />
-            <Route path="/courses/:slug"  element={<Layout><CourseDetailPage /></Layout>} />
-            <Route path="/admin-panel"   element={<Layout><AdminPanelPage /></Layout>} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+      <CartProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Layout><LandingPage /></Layout>} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/dashboard" element={<Layout><DashboardPage /></Layout>} />
+              <Route path="/portal" element={<Layout><PortalPage /></Layout>} />
+              <Route path="/courses"        element={<Layout><CoursesListPage /></Layout>} />
+              <Route path="/courses/:slug"  element={<Layout><CourseDetailPage /></Layout>} />
+              <Route path="/checkout"       element={<Layout><CheckoutPage /></Layout>} />
+              <Route path="/admin-panel"   element={<Layout><AdminPanelPage /></Layout>} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </CartProvider>
     </AuthProvider>
   )
 }

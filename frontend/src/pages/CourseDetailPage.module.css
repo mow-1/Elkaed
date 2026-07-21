@@ -175,6 +175,32 @@
   cursor: default;
 }
 
+.cartBtn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: transparent;
+  color: var(--primary);
+  padding: 12px 32px;
+  border-radius: 12px;
+  border: 1.5px solid var(--primary);
+  font-family: 'Cairo', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cartBtn:hover:not(:disabled) {
+  background: var(--primary-soft);
+  color: var(--cream);
+}
+
+.cartBtn:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
 /* Topics accordion */
 .topics {
   border-top: 1px solid var(--sand-border);

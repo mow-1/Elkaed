@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getCourse, enrollCourse } from '../api/courses'
 import { useAuth } from '../context/AuthContext'
+import { useCart } from '../context/CartContext'
 import styles from './CourseDetailPage.module.css'
 
 function formatDuration(secs) {
@@ -11,6 +12,7 @@ function formatDuration(secs) {
 export default function CourseDetailPage() {
   const { slug } = useParams()
   const { user } = useAuth()
+  const { addItem, has } = useCart()
   const [course, setCourse] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -92,13 +94,22 @@ export default function CourseDetailPage() {
             {!user ? (
               <Link to="/login" className={styles.enrollBtn}>سجّل الدخول للتسجيل</Link>
             ) : (
-              <button
-                className={styles.enrollBtn}
-                onClick={handleEnroll}
-                disabled={enrollState === 'loading' || enrollState === 'success'}
-              >
-                {enrollState === 'loading' ? 'جاري التسجيل...' : 'اشترك الآن'}
-              </button>
+              <>
+                <button
+                  className={styles.enrollBtn}
+                  onClick={handleEnroll}
+                  disabled={enrollState === 'loading' || enrollState === 'success'}
+                >
+                  {enrollState === 'loading' ? 'جاري التسجيل...' : 'اشترك الآن'}
+                </button>
+                <button
+                  className={styles.cartBtn}
+                  disabled={has(course.id) || enrollState === 'success'}
+                  onClick={() => addItem({ id: course.id, title: course.title, price: course.price })}
+                >
+                  {has(course.id) ? '✓ في السلة' : 'أضف للسلة'}
+                </button>
+              </>
             )}
           </div>
         </div>

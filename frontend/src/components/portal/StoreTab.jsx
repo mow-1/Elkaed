@@ -1,32 +1,16 @@
 import { useEffect, useState } from 'react'
-import { getCourses, enrollCourse } from '../../api/courses'
+import { Link } from 'react-router-dom'
+import { getCourses } from '../../api/courses'
 import { blank, load } from './shared'
+import { useCart } from '../../context/CartContext'
 import CourseCard from './CourseCard'
 import styles from '../../pages/PortalPage.module.css'
 
 export default function StoreTab() {
   const [state, setState] = useState(blank())
-  const [buyState, setBuyState] = useState({}) // { [courseId]: 'loading'|'done'|'error message' }
+  const { items, addItem, has } = useCart()
 
   useEffect(() => { load(getCourses, setState) }, [])
-
-  async function handleBuy(course) {
-    setBuyState(s => ({ ...s, [course.id]: 'loading' }))
-    try {
-      const res = await enrollCourse(course.id)
-      if (res.status === 402) {
-        const body = await res.json().catch(() => ({}))
-        if (body.payment_url) { window.location.href = body.payment_url; return }
-        setBuyState(s => ({ ...s, [course.id]: 'رصيد المحفظة غير كافٍ' }))
-        return
-      }
-      if (res.ok) { setBuyState(s => ({ ...s, [course.id]: 'done' })); return }
-      const body = await res.json().catch(() => ({}))
-      setBuyState(s => ({ ...s, [course.id]: body.detail || 'حدث خطأ' }))
-    } catch {
-      setBuyState(s => ({ ...s, [course.id]: 'حدث خطأ' }))
-    }
-  }
 
   if (state.loading) return <p className={styles.loading}>جارٍ التحميل...</p>
   if (state.error) return (
@@ -40,30 +24,32 @@ export default function StoreTab() {
   if (!list.length) return <p className={styles.empty}>لا توجد كورسات متاحة حالياً.</p>
 
   return (
-    <div className={styles.courseGrid}>
-      {list.map(c => {
-        const b = buyState[c.id]
-        return (
-          <CourseCard
-            key={c.id}
-            course={c}
-            action={
-              <div>
+    <div>
+      {items.length > 0 && (
+        <p className={styles.courseStatus} style={{ marginBottom: 12 }}>
+          {items.length} كورس في السلة — <Link to="/checkout">الذهاب للسلة والدفع</Link>
+        </p>
+      )}
+      <div className={styles.courseGrid}>
+        {list.map(c => {
+          const inCart = has(c.id)
+          return (
+            <CourseCard
+              key={c.id}
+              course={c}
+              action={
                 <button
                   className={styles.openBtn}
-                  disabled={b === 'loading' || b === 'done'}
-                  onClick={() => handleBuy(c)}
+                  disabled={inCart}
+                  onClick={() => addItem({ id: c.id, title: c.title, price: c.price })}
                 >
-                  {b === 'loading' ? 'جارٍ الشراء...' : b === 'done' ? '✓ تم الاشتراك' : 'شراء'}
+                  {inCart ? '✓ في السلة' : 'أضف للسلة'}
                 </button>
-                {b && b !== 'loading' && b !== 'done' && (
-                  <p className={styles.buyError}>{b}</p>
-                )}
-              </div>
-            }
-          />
-        )
-      })}
+              }
+            />
+          )
+        })}
+      </div>
     </div>
   )
 }

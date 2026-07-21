@@ -144,10 +144,11 @@ def verify_kanga_hmac(payload: bytes, signature: str) -> bool:
     return hmac.compare_digest(expected, signature)
 
 
-def create_kanga_payment(order: Order, course: Course, return_url: str) -> str:
+def create_kanga_payment(order: Order, description: str, return_url: str) -> str:
     """
     Initiate a Kanga Pay payment and return the redirect URL.
     Kanga Pay API docs: https://kanga-pay.com/docs (retrieve keys from WP options).
+    `description` is a plain label (a course title, or "N courses" for a cart checkout).
     """
     try:
         resp = requests.post(
@@ -156,7 +157,7 @@ def create_kanga_payment(order: Order, course: Course, return_url: str) -> str:
                 'amount':      str(order.total_price),
                 'currency':    'EGP',
                 'order_id':    str(order.pk),
-                'description': course.title,
+                'description': description,
                 'return_url':  return_url,
                 'webhook_url': f'{settings.SITE_URL}/api/commerce/kanga-pay/webhook/',
             },

@@ -101,7 +101,7 @@ class EnrollView(APIView):
             )
             OrderItem.objects.create(order=pending_order, course=course, price=course.price)
             return_url = request.build_absolute_uri(f'/student/courses/{course.slug}/')
-            payment_url = create_kanga_payment(pending_order, course, return_url)
+            payment_url = create_kanga_payment(pending_order, course.title, return_url)
             return Response({'payment_url': payment_url}, status=status.HTTP_402_PAYMENT_REQUIRED)
 
         _check_enrollment_cap(course)

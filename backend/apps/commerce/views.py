@@ -10,12 +10,13 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.courses.models import Enrollment
+from apps.attendance.services import effective_price as apply_discount
+from apps.courses.models import Course, Enrollment
 from apps.users.models import User
 from .models import Coupon, CouponRedemption, Order, OrderItem, WalletTransaction
 from .serializers import CouponRedeemSerializer, WalletTransactionSerializer, KangaPayInitSerializer
 from apps.notifications.tasks import send_whatsapp_task
-from .services import verify_kanga_hmac, wallet_credit, wallet_debit, InsufficientBalance
+from .services import verify_kanga_hmac, wallet_credit, wallet_debit, create_kanga_payment, InsufficientBalance
 
 logger = logging.getLogger(__name__)
 
@@ -192,6 +193,82 @@ class BundlePurchaseView(APIView):
 
         send_whatsapp_task.delay(user.phone, f'تم شراء باقة {bundle.title} بنجاح! تم تسجيلك في {len(enrolled_now)} كورس.')
         return Response({'enrolled': enrolled_now, 'already_enrolled': already})
+
+
+class CheckoutView(APIView):
+    """Cart checkout: buy several courses in one order. Mirrors BundlePurchaseView's
+    pattern (create records first, then wallet_debit inside the same atomic block so
+    InsufficientBalance rolls back everything together) — generalized to an arbitrary
+    course_id list instead of a fixed Bundle."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        course_ids = request.data.get('course_ids') or []
+        if not course_ids:
+            return Response({'detail': 'السلة فارغة.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        courses = Course.objects.filter(id__in=course_ids, is_published=True)
+        now_ = tz_now()
+        already_enrolled = []
+        to_buy = []
+        for course in courses:
+            if Enrollment.objects.filter(student=request.user, course=course).exists():
+                already_enrolled.append(course.title)
+                continue
+            sale = FlashSale.objects.filter(
+                course=course, is_active=True, starts_at__lte=now_, ends_at__gte=now_,
+            ).first()
+            base_price = sale.effective_price() if sale else course.price
+            price, discount = apply_discount(request.user, base_price, scope='online_only')
+            to_buy.append({'course': course, 'price': price, 'base_price': base_price, 'discount': discount})
+
+        if not to_buy:
+            return Response(
+                {'detail': 'كل الكورسات في السلة مشترك فيها بالفعل.', 'already_enrolled': already_enrolled},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        total = sum(item['price'] for item in to_buy)
+        original_total = sum(item['base_price'] for item in to_buy)
+        enrolled_now = []
+
+        try:
+            with transaction.atomic():
+                locked_user = User.objects.select_for_update().get(pk=request.user.pk)
+                order = Order.objects.create(
+                    user=locked_user, status='completed', payment_method='wallet', total_price=total,
+                )
+                for item in to_buy:
+                    OrderItem.objects.create(order=order, course=item['course'], price=item['price'])
+                    Enrollment.objects.create(student=locked_user, course=item['course'], payment_method='wallet', order=order)
+                    enrolled_now.append(item['course'].title)
+
+                # raises InsufficientBalance -> propagates out of this atomic block,
+                # rolling back the order/order items/enrollments created above too
+                wallet_debit(
+                    locked_user, total, reason_code='purchase', related_object=order,
+                    created_by=locked_user, note=f'شراء سلة ({len(to_buy)} كورس)',
+                    original_amount=original_total if original_total != total else None,
+                )
+                for item in to_buy:
+                    from apps.courses.views import _check_enrollment_cap
+                    _check_enrollment_cap(item['course'])
+        except InsufficientBalance:
+            pending_order = Order.objects.create(
+                user=request.user, status='pending', payment_method='kanga_pay', total_price=total,
+            )
+            for item in to_buy:
+                OrderItem.objects.create(order=pending_order, course=item['course'], price=item['price'])
+            return_url = request.build_absolute_uri('/checkout')
+            payment_url = create_kanga_payment(pending_order, f'سلة مشتريات ({len(to_buy)} كورس)', return_url)
+            return Response({'payment_url': payment_url}, status=status.HTTP_402_PAYMENT_REQUIRED)
+
+        send_whatsapp_task.delay(request.user.phone, f'تم شراء {len(enrolled_now)} كورس بنجاح! مبروك 🎉')
+        return Response({
+            'enrolled': enrolled_now,
+            'already_enrolled': already_enrolled,
+            'total_price': str(total),
+        }, status=status.HTTP_201_CREATED)
 
 
 class OrderListView(generics.ListAPIView):

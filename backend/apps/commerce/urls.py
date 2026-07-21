@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     WalletView, WalletHistoryView, CouponRedeemView, KangaPayWebhookView,
-    ActiveFlashSalesView, BundleListView, BundlePurchaseView,
+    ActiveFlashSalesView, BundleListView, BundlePurchaseView, CheckoutView,
     OrderListView, AdminFlashSaleView, AdminFlashSaleDetailView,
     AdminBundleView, AdminBundleDetailView,
 )
@@ -9,6 +9,7 @@ from .views import (
 urlpatterns = [
     path('wallet/',                             WalletView.as_view(),              name='wallet'),
     path('wallet/history/',                     WalletHistoryView.as_view(),       name='wallet_history'),
+    path('checkout/',                           CheckoutView.as_view(),            name='checkout'),
     path('coupons/redeem/',                     CouponRedeemView.as_view(),        name='coupon_redeem'),
     path('kanga-pay/webhook/',                  KangaPayWebhookView.as_view(),     name='kanga_webhook'),
     path('flash-sales/',                        ActiveFlashSalesView.as_view(),    name='flash_sales'),

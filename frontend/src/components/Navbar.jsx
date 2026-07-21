@@ -1,7 +1,25 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useCart } from '../context/CartContext'
 import styles from './Navbar.module.css'
+
+function WalletAndCart() {
+  const { user } = useAuth()
+  const { items } = useCart()
+  if (!user || user.role !== 'student') return null
+  return (
+    <>
+      <span className={styles.walletChip} title="رصيد المحفظة">
+        💰 {user.wallet_balance} ج.م
+      </span>
+      <Link to="/checkout" className={styles.cartLink} title="السلة">
+        🛒
+        {items.length > 0 && <span className={styles.cartBadge}>{items.length}</span>}
+      </Link>
+    </>
+  )
+}
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
@@ -35,6 +53,7 @@ export default function Navbar() {
           <div className={styles.mobileAuth}>
             {user ? (
               <>
+                <WalletAndCart />
                 <Link to="/portal" className={styles.link}>بوابة الطالب</Link>
                 <Link to="/dashboard" className={styles.link}>لوحة التحكم</Link>
                 {['admin', 'staff'].includes(user.role) && (
@@ -58,6 +77,7 @@ export default function Navbar() {
                 <div className={styles.avatar}>{user.first_name?.[0] ?? '؟'}</div>
                 <span className={styles.userName}>{user.first_name}</span>
               </div>
+              <WalletAndCart />
               <Link to="/portal" className={styles.link}>بوابة الطالب</Link>
               <Link to="/dashboard" className={styles.link}>لوحة التحكم</Link>
               {['admin', 'staff'].includes(user.role) && (
