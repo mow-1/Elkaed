@@ -1,0 +1,35 @@
+from django.urls import path
+from rest_framework_simplejwt.views import TokenRefreshView
+from .views import (SendOTPView, VerifyOTPView, ProfileView, CreateStudentView,
+                    AdminAnalyticsView, AddressListView, AddressDetailView,
+                    CustomerListView, CustomerDetailView, PasswordLoginView,
+                    ChangePasswordView, RegistrationSettingsView,
+                    ImportPreviewView, ImportConfirmView, ImportBatchListView,
+                    ImportBatchDetailView, ImportTemplateView, ResetCustomerPasswordView,
+                    MyQrCodeView, MyIdCardView, RegenerateQrView)
+
+urlpatterns = [
+    path('send-otp/',       SendOTPView.as_view(),       name='send_otp'),
+    path('verify-otp/',     VerifyOTPView.as_view(),     name='verify_otp'),
+    path('login-password/', PasswordLoginView.as_view(), name='login_password'),
+    path('change-password/', ChangePasswordView.as_view(), name='change_password'),
+    path('registration-settings/', RegistrationSettingsView.as_view(), name='registration_settings'),
+    path('profile/',        ProfileView.as_view(),       name='profile'),
+    path('create-student/', CreateStudentView.as_view(), name='create_student'),
+    path('token/refresh/',  TokenRefreshView.as_view(),  name='token_refresh'),
+    path('analytics/',      AdminAnalyticsView.as_view(), name='analytics'),
+    path('addresses/',                          AddressListView.as_view(),   name='address_list'),
+    path('addresses/<int:pk>/',                 AddressDetailView.as_view(), name='address_detail'),
+    path('addresses/<int:pk>/set-default/',     AddressDetailView.as_view(), name='address_set_default'),
+    path('customers/',          CustomerListView.as_view(),   name='customer_list'),
+    path('customers/<int:pk>/', CustomerDetailView.as_view(), name='customer_detail'),
+    path('customers/<int:pk>/reset-password/', ResetCustomerPasswordView.as_view(), name='customer_reset_password'),
+    path('customers/<int:pk>/regenerate-qr/', RegenerateQrView.as_view(), name='customer_regenerate_qr'),
+    path('me/qr-code.png', MyQrCodeView.as_view(), name='my_qr_code'),
+    path('me/id-card.pdf', MyIdCardView.as_view(), name='my_id_card'),
+    path('admin/import/',          ImportBatchListView.as_view(),   name='import_list'),
+    path('admin/import/preview/',  ImportPreviewView.as_view(),     name='import_preview'),
+    path('admin/import/confirm/',  ImportConfirmView.as_view(),     name='import_confirm'),
+    path('admin/import/template/', ImportTemplateView.as_view(),    name='import_template'),
+    path('admin/import/<int:pk>/', ImportBatchDetailView.as_view(), name='import_detail'),
+]

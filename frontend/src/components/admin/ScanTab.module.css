@@ -1,0 +1,97 @@
+.counter {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+
+/* Hidden hardware-scanner input: off-screen but focusable */
+.hiddenForm { position: absolute; width: 1px; height: 1px; overflow: hidden; }
+.hiddenInput {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  border: none;
+  padding: 0;
+}
+
+.qrReader {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.resultCard {
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resultTitle { font-size: 20px; font-weight: 900; }
+
+.resultActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.resultActions button {
+  background: white;
+  color: var(--text);
+}
+
+.cardGreen  { background: #2e9e5b; }
+.cardBlue   { background: #2e7dd1; }
+.cardOrange { background: #e08a1f; }
+.cardRed    { background: #d64545; }
+.cardYellow { background: #c9971f; }
+
+.searchBox { margin-top: 16px; max-width: 480px; }
+
+.searchResults {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.searchRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border: 1px solid var(--sand-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.phone { color: var(--text-muted); font-size: 12px; }
+
+.unscannedList {
+  margin-top: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--sand-border);
+  border-radius: 12px;
+  padding: 8px 14px;
+}
+
+.unscannedRow {
+  padding: 6px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--hairline);
+}

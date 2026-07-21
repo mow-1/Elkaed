@@ -1,0 +1,28 @@
+# Secrets / local env
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.sqlite3
+backend/media/
+backend/staticfiles/
+venv/
+.venv/
+
+# Node / frontend build
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store

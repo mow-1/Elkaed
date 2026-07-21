@@ -1,0 +1,94 @@
+.section {
+  padding: 40px 24px 80px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.eyebrow {
+  color: var(--gold-mid);
+  font-weight: 800;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 900;
+  font-size: 36px;
+  color: var(--primary);
+  margin-bottom: 14px;
+}
+
+.underline {
+  width: 64px;
+  height: 3px;
+  background: var(--gold);
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--sand-border);
+  border-radius: 16px;
+  padding: 28px 22px;
+  text-align: center;
+  transition: all 0.25s, transform 0.25s;
+}
+
+.card:hover {
+  border: 1px solid var(--gold);
+  box-shadow: 0 10px 26px rgba(20, 33, 61, 0.08);
+  transform: translateY(-4px);
+}
+
+.glyph {
+  width: 52px;
+  height: 52px;
+  background: var(--cream-soft);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  color: var(--gold-mid);
+  margin: 0 auto 16px;
+}
+
+.cardTitle {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.cardBody {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

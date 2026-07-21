@@ -1,0 +1,21 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<h2>{{ title }}</h2>
+<p>سيتم إرسال الرسالة إلى <strong>{{ user_count }}</strong> مستخدم.</p>
+
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="ids" value="{{ ids }}">
+  <div style="margin: 20px 0;">
+    <label for="message" style="display:block; font-weight:bold; margin-bottom:8px;">نص الرسالة:</label>
+    <textarea id="message" name="message" rows="5" cols="60" maxlength="1000" required
+              style="width:100%; max-width:600px; padding:8px; font-size:14px;"></textarea>
+  </div>
+  <div>
+    <input type="submit" value="إرسال الرسائل" class="button default">
+    <a href="../../" style="margin-right: 10px;">إلغاء</a>
+  </div>
+</form>
+{% endblock %}

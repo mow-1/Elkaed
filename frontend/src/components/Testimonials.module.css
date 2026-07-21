@@ -1,0 +1,101 @@
+.section {
+  background: var(--cream-soft);
+  border-top: 1px solid var(--sand-dark);
+  border-bottom: 1px solid var(--sand-dark);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 72px 24px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.title {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 900;
+  font-size: 34px;
+  color: var(--primary);
+}
+
+.bar {
+  width: 64px;
+  height: 3px;
+  background: var(--gold-mid);
+  margin: 10px auto 0;
+}
+
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* Card */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 26px 24px;
+  border: 1px solid var(--sand-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.quoteMark {
+  font-family: 'Cairo', sans-serif;
+  color: var(--gold);
+  font-size: 30px;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.quoteText {
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--text-quote);
+  margin-bottom: 18px;
+  flex: 1;
+}
+
+.author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--cream-soft);
+  font-family: 'Cairo', sans-serif;
+  font-weight: 900;
+  color: var(--gold-mid);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.name {
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--primary);
+}
+
+.grade {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

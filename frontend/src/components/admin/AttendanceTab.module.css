@@ -1,0 +1,64 @@
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--sand-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cardInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.name {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.phone {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.cardActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.statusBtn, .statusBtnActive {
+  flex: 1;
+  min-width: 90px;
+  min-height: 44px;
+  border-radius: 10px;
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid var(--sand-border);
+  background: white;
+  color: var(--text-secondary);
+  transition: background 0.2s, color 0.2s;
+}
+
+.statusBtn:hover { background: var(--cream-soft); }
+.statusBtn:disabled, .statusBtnActive:disabled { opacity: 0.6; cursor: default; }
+
+.statusBtnActive {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--cream);
+}

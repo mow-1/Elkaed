@@ -1,0 +1,121 @@
+.footer {
+  background: var(--primary-dark);
+  color: var(--text-hero);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 56px 24px 28px;
+}
+
+/* 3-col grid */
+.grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+/* Brand column */
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.logoRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logoMark {
+  width: 34px;
+  height: 34px;
+  background: var(--primary-soft);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.triangle {
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 15px solid var(--gold);
+}
+
+.logoName {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 900;
+  font-size: 20px;
+  color: var(--cream);
+}
+
+.brandText {
+  font-size: 14px;
+  line-height: 1.8;
+  max-width: 320px;
+  color: var(--text-hero);
+}
+
+/* Link columns */
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.colHeading {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--cream);
+  margin-bottom: 4px;
+}
+
+.colLink {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-hero);
+  transition: color 0.2s;
+}
+
+.colLink:hover {
+  color: var(--gold);
+}
+
+/* Bottom bar */
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-top: 1px solid var(--primary-soft);
+  padding-top: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-hero);
+}
+
+.tagline {
+  color: var(--gold-mid);
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
