@@ -1,4 +1,6 @@
+import re
 from datetime import timedelta
+from pathlib import Path
 
 from django.conf import settings
 from django.db.models import F
@@ -13,6 +15,7 @@ from rest_framework.views import APIView
 from apps.courses.models import Enrollment, Lesson, LessonProgress
 from .models import VideoAccessLog, VideoAccessToken
 from .serializers import LessonProgressUpdateSerializer, VideoTokenSerializer
+from .services import KEY_URI_PLACEHOLDER
 
 
 def _get_ip(request):
@@ -73,12 +76,19 @@ class RequestVideoTokenView(APIView):
 
         ip = _get_ip(request)
 
-        # Revoke any live token for this user+video before issuing a new one
-        VideoAccessToken.objects.filter(
-            user=request.user, video=lesson.video, used=False
-        ).update(used=True)
+        # Idempotent: reuse an existing still-valid token for this user+video instead
+        # of revoking it — a request for "the" token isn't destructive by itself.
+        # Revoking-on-every-request broke playback under React StrictMode's
+        # double-invoked effects (and would equally break a double-click or two open
+        # tabs in production): the first token would die the instant the second
+        # request revoked it, so the player that actually started using it got a
+        # 403 on the key/segment fetch moments later.
+        existing = VideoAccessToken.objects.filter(
+            user=request.user, video=lesson.video, used=False,
+            expires_at__gt=now(), ip_address=ip,
+        ).order_by('-issued_at').first()
 
-        token = VideoAccessToken.objects.create(
+        token = existing or VideoAccessToken.objects.create(
             user=request.user,
             video=lesson.video,
             lesson=lesson,
@@ -94,12 +104,7 @@ class RequestVideoTokenView(APIView):
             token_issued=True,
         )
 
-        cloudfront = getattr(settings, 'CLOUDFRONT_DOMAIN', '')
-        hls_url = (
-            f'https://{cloudfront}/{lesson.video.hls_path}'
-            if cloudfront
-            else lesson.video.hls_path
-        )
+        hls_url = request.build_absolute_uri(f'/api/videos/manifest/{token.token}/')
 
         progress = LessonProgress.objects.filter(student=request.user, lesson=lesson).first()
         view_count = progress.view_count if progress else 0
@@ -154,6 +159,58 @@ class AESKeyView(APIView):
         ).update(view_count=F('view_count') + 1, last_watched=now())
 
         return HttpResponse(bytes(token_obj.video.aes_key), content_type='application/octet-stream')
+
+
+class ManifestView(APIView):
+    """Serves the HLS manifest for a viewing session, rewriting the placeholder key
+    URI and every segment filename to token-scoped URLs — segments and the key are
+    validated the same way as this manifest, one per-viewing token gates all three."""
+    permission_classes = []
+
+    def get(self, request, token):
+        token_obj = get_object_or_404(VideoAccessToken, token=token)
+        ip = _get_ip(request)
+        if not token_obj.is_valid_for_playback(ip):
+            return HttpResponse(status=403)
+
+        manifest_path = Path(settings.MEDIA_ROOT) / token_obj.video.hls_path
+        if not manifest_path.exists():
+            return HttpResponse(status=404)
+
+        key_url = request.build_absolute_uri(f'/api/videos/key/{token}/')
+        segment_base = request.build_absolute_uri(f'/api/videos/segment/{token}/')
+
+        lines_out = []
+        for line in manifest_path.read_text().splitlines():
+            if line.startswith('#EXT-X-KEY'):
+                line = line.replace(KEY_URI_PLACEHOLDER, key_url)
+            elif line and not line.startswith('#'):
+                line = segment_base + line
+            lines_out.append(line)
+
+        return HttpResponse('\n'.join(lines_out), content_type='application/vnd.apple.mpegurl')
+
+
+class SegmentView(APIView):
+    """Serves one encrypted .ts segment, gated by the same viewing token as the
+    manifest and key. The segment bytes are already AES-128 ciphertext — this view
+    adds nothing beyond access control, no per-request decryption happens here."""
+    permission_classes = []
+
+    def get(self, request, token, filename):
+        if not re.fullmatch(r'seg_\d{3}\.ts', filename):
+            return HttpResponse(status=400)
+
+        token_obj = get_object_or_404(VideoAccessToken, token=token)
+        ip = _get_ip(request)
+        if not token_obj.is_valid_for_playback(ip):
+            return HttpResponse(status=403)
+
+        segment_path = Path(settings.MEDIA_ROOT) / Path(token_obj.video.hls_path).parent / filename
+        if not segment_path.exists():
+            return HttpResponse(status=404)
+
+        return HttpResponse(segment_path.read_bytes(), content_type='video/mp2t')
 
 
 class LessonProgressView(APIView):

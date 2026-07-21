@@ -127,3 +127,8 @@ AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='')
 AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME', default='elkaed-videos')
 CLOUDFRONT_DOMAIN = config('CLOUDFRONT_DOMAIN', default='')
 CLOUDFRONT_KEY_PAIR_ID = config('CLOUDFRONT_KEY_PAIR_ID', default='')
+
+# Video transcoding — bare command names assume ffmpeg/ffprobe are on PATH;
+# override with a full path if they aren't (e.g. right after a fresh install).
+FFMPEG_BINARY = config('FFMPEG_BINARY', default='ffmpeg')
+FFPROBE_BINARY = config('FFPROBE_BINARY', default='ffprobe')

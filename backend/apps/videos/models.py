@@ -13,13 +13,15 @@ class Video(models.Model):
 
     title            = models.CharField(max_length=300)
     uploaded_by      = models.ForeignKey('users.User', on_delete=models.PROTECT)
-    original_path    = models.CharField(max_length=500)
+    raw_file         = models.FileField(upload_to='videos/uploads/', null=True, blank=True)
+    original_path    = models.CharField(max_length=500, blank=True)
     hls_path         = models.CharField(max_length=500, blank=True)
-    aes_key          = models.BinaryField(max_length=16)
-    aes_key_id       = models.CharField(max_length=50)
+    aes_key          = models.BinaryField(max_length=16, blank=True, default=b'')
+    aes_key_id       = models.CharField(max_length=50, blank=True, default='')
     duration_seconds = models.PositiveIntegerField(default=0)
     file_size_bytes  = models.BigIntegerField(default=0)
     status           = models.CharField(choices=STATUS, max_length=15, default='uploading')
+    error_message    = models.TextField(blank=True)
     created_at       = models.DateTimeField(auto_now_add=True)
     thumbnails       = models.JSONField(default=list)
 
@@ -47,6 +49,12 @@ class VideoAccessToken(models.Model):
 
     def is_valid(self, ip):
         return not self.used and self.expires_at > now() and self.ip_address == ip
+
+    def is_valid_for_playback(self, ip):
+        """Like is_valid() but ignores `used` — the manifest and segments are
+        fetched repeatedly throughout a session; only the key fetch is one-time
+        (see AESKeyView, which still uses is_valid())."""
+        return self.expires_at > now() and self.ip_address == ip
 
 
 class VideoAccessLog(models.Model):

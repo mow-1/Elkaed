@@ -71,7 +71,7 @@ class Lesson(models.Model):
     video_source     = models.CharField(choices=VIDEO_SOURCES, max_length=15, default='self_hosted')
     youtube_id       = models.CharField(max_length=50, blank=True)
     order            = models.PositiveIntegerField()
-    view_limit       = models.PositiveIntegerField(default=0)
+    view_limit       = models.PositiveIntegerField(default=10)
     is_free_preview  = models.BooleanField(default=False)
     duration_seconds = models.PositiveIntegerField(default=0)
     wp_post_id       = models.IntegerField(null=True, db_index=True)
