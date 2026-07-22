@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { getMyEnrollments } from '../api/courses'
 import { getWallet, getOrders } from '../api/commerce'
 import { getNotifPrefs, updateNotifPrefs } from '../api/notifications'
+import ProfileForm from '../components/ProfileForm'
 import styles from './DashboardPage.module.css'
 
 // ── constants ──────────────────────────────────────────────────────────────
@@ -161,8 +162,11 @@ function PrefsTab({ state, onToggle, retry }) {
 }
 
 function ProfileTab({ user, wallet }) {
+  // Phone/role/year/type/wallet aren't user-editable (system/derived fields) —
+  // shown read-only here. Name + guardian phone ARE editable, via the same
+  // ProfileForm the /portal Account tab uses — previously this tab had no form
+  // at all, so no student could actually change their info from here.
   const fields = [
-    { label: 'الاسم الكامل', value: `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() || '—' },
     { label: 'رقم الهاتف',   value: user.phone ?? '—' },
     { label: 'نوع الحساب',   value: ROLE_AR[user.role] ?? user.role ?? '—' },
     { label: 'الصف الدراسي', value: YEAR_AR[user.academic_year] ?? user.academic_year ?? '—' },
@@ -174,13 +178,16 @@ function ProfileTab({ user, wallet }) {
   ]
 
   return (
-    <div className={styles.profileBox}>
-      {fields.map(f => (
-        <div key={f.label} className={styles.profileField}>
-          <p className={styles.fieldLabel}>{f.label}</p>
-          <p className={styles.fieldValue}>{f.value}</p>
-        </div>
-      ))}
+    <div>
+      <div className={styles.profileBox}>
+        {fields.map(f => (
+          <div key={f.label} className={styles.profileField}>
+            <p className={styles.fieldLabel}>{f.label}</p>
+            <p className={styles.fieldValue}>{f.value}</p>
+          </div>
+        ))}
+      </div>
+      <ProfileForm />
     </div>
   )
 }
