@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Category, Course, Topic, Lesson, Enrollment, LessonProgress, LessonWatchlist, Material
+from .models import (Category, Course, Topic, Lesson, Enrollment, LessonProgress,
+                      LessonWatchlist, Material, Assignment, AssignmentSubmission)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -22,10 +23,38 @@ class LessonSerializer(serializers.ModelSerializer):
 
 class TopicSerializer(serializers.ModelSerializer):
     lessons = LessonSerializer(many=True, read_only=True)
+    items   = serializers.SerializerMethodField()
 
     class Meta:
         model  = Topic
-        fields = ('id', 'title', 'order', 'lessons')
+        fields = ('id', 'title', 'order', 'lessons', 'items')
+
+    def get_items(self, topic):
+        """Unified, ordered curriculum list: lessons + quizzes + assignments,
+        merged and sorted — feeds both the public course page and the builder's
+        curriculum step. Deliberately metadata-only (no question/answer data —
+        that's fetched separately via QuizDetailView once a student starts a
+        quiz, which already enforces its own enrollment check)."""
+        items = []
+        for lesson in topic.lessons.all():
+            items.append({
+                'id': lesson.id, 'type': 'lesson', 'title': lesson.title, 'order': lesson.order,
+                'duration_seconds': lesson.duration_seconds, 'is_free_preview': lesson.is_free_preview,
+                'view_limit': lesson.view_limit,
+            })
+        for quiz in topic.quiz_set.all():
+            items.append({
+                'id': quiz.id, 'type': 'quiz', 'title': quiz.title, 'order': quiz.order,
+                'time_limit': quiz.time_limit, 'attempts_allowed': quiz.attempts_allowed,
+                'is_locked': quiz.is_locked,
+            })
+        for assignment in topic.assignments.all():
+            items.append({
+                'id': assignment.id, 'type': 'assignment', 'title': assignment.title_ar,
+                'order': assignment.order, 'due_at': assignment.due_at,
+                'has_attachment': bool(assignment.attachment),
+            })
+        return sorted(items, key=lambda i: i['order'])
 
 
 class CourseListSerializer(serializers.ModelSerializer):
@@ -107,6 +136,50 @@ class MyLessonSerializer(serializers.Serializer):
     view_limit        = serializers.IntegerField()
     view_count        = serializers.IntegerField()
     source            = serializers.CharField()  # 'enrollment' | 'absence_grant'
+
+
+class AdminCourseSerializer(serializers.ModelSerializer):
+    # Draft courses (is_published=False) are invisible on the public course-detail
+    # endpoint, so the builder's curriculum step reads topics/items from here instead —
+    # same TopicSerializer.items shape, just reachable before publishing.
+    topics = TopicSerializer(many=True, read_only=True)
+
+    class Meta:
+        model  = Course
+        fields = ['id', 'title', 'title_en', 'slug', 'description', 'description_en',
+                  'instructor', 'category', 'price', 'thumbnail', 'is_published',
+                  'max_students', 'topics', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'instructor', 'created_at', 'updated_at']
+
+
+class AdminTopicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Topic
+        fields = ['id', 'course', 'title', 'title_en', 'order']
+        read_only_fields = ['id', 'course', 'order']
+
+
+class AdminLessonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Lesson
+        fields = ['id', 'topic', 'title', 'title_en', 'order', 'video', 'video_source',
+                  'youtube_id', 'view_limit', 'is_free_preview', 'duration_seconds']
+        read_only_fields = ['id', 'topic', 'order', 'video', 'duration_seconds']
+
+
+class AdminAssignmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Assignment
+        fields = ['id', 'topic', 'title_ar', 'title_en', 'instructions', 'attachment',
+                  'due_at', 'order', 'created_at']
+        read_only_fields = ['id', 'topic', 'order', 'created_at']
+
+
+class AssignmentSubmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = AssignmentSubmission
+        fields = ['id', 'assignment', 'file', 'submitted_at']
+        read_only_fields = ['id', 'assignment', 'submitted_at']
 
 
 class EnrollmentStudentSerializer(serializers.ModelSerializer):

@@ -37,7 +37,7 @@ export default function CoursesListPage() {
   useEffect(() => {
     getInstructors()
       .then(r => r.ok ? r.json() : [])
-      .then(list => setTeachers(Array.isArray(list) ? list : []))
+      .then(d => setTeachers(Array.isArray(d) ? d : (d?.results ?? [])))
       .catch(() => {})
   }, [])
 

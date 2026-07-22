@@ -201,3 +201,39 @@ class Material(models.Model):
 
     def __str__(self):
         return self.title_ar
+
+
+class Assignment(models.Model):
+    """Homework — deliberately minimal: instructions + optional attachment,
+    one student submission, no grading/rubric workflow."""
+    topic        = models.ForeignKey(Topic, related_name='assignments', on_delete=models.CASCADE)
+    title_ar     = models.CharField(max_length=300)
+    title_en     = models.CharField(max_length=300, blank=True)
+    instructions = models.TextField(blank=True)
+    attachment   = models.FileField(upload_to='assignments/', null=True, blank=True)
+    due_at       = models.DateTimeField(null=True, blank=True)
+    order        = models.PositiveIntegerField(default=0)
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = 'واجب'
+        verbose_name_plural = 'الواجبات'
+
+    def __str__(self):
+        return self.title_ar
+
+
+class AssignmentSubmission(models.Model):
+    assignment    = models.ForeignKey(Assignment, related_name='submissions', on_delete=models.CASCADE)
+    student       = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    file          = models.FileField(upload_to='assignments/submissions/')
+    submitted_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('assignment', 'student')]
+        verbose_name = 'تسليم واجب'
+        verbose_name_plural = 'تسليمات الواجبات'
+
+    def __str__(self):
+        return f'{self.student} — {self.assignment}'

@@ -8,14 +8,16 @@ import AccountTab from '../components/portal/AccountTab'
 import FeedTab from '../components/portal/FeedTab'
 import StoreTab from '../components/portal/StoreTab'
 import MyCoursesTab from '../components/portal/MyCoursesTab'
+import DashboardShell from '../components/DashboardShell'
 import styles from './PortalPage.module.css'
 
 // All tabs are visible regardless of student_type (deliberate — overrides any
-// "online only" framing from earlier plan drafts). Grouped so the tab bar
-// reads as "my learning / discover / account" instead of one flat row.
-const TAB_GROUPS = [
+// "online only" framing from earlier plan drafts). Grouped so the sidebar
+// reads as "my learning / discover / account" instead of one flat list.
+const TAB_SECTIONS = [
   {
-    tabs: [
+    label: 'التعلّم',
+    items: [
       { id: 'mycourses', label: 'كورساتي',   icon: '📚' },
       { id: 'lessons',   label: 'الدروس',    icon: '🎬' },
       { id: 'revisions', label: 'المراجعات', icon: '🔁' },
@@ -24,13 +26,15 @@ const TAB_GROUPS = [
     ],
   },
   {
-    tabs: [
+    label: 'اكتشف',
+    items: [
       { id: 'feed',  label: 'الجديد', icon: '🆕' },
       { id: 'store', label: 'المتجر', icon: '🛍️' },
     ],
   },
   {
-    tabs: [
+    label: 'الحساب',
+    items: [
       { id: 'account', label: 'حسابي', icon: '👤' },
     ],
   },
@@ -55,36 +59,15 @@ export default function PortalPage() {
   if (!user) return null
 
   return (
-    <div className={styles.page}>
-      <h1 className={styles.heading}>بوابة الطالب</h1>
-
-      <div className={styles.tabBar}>
-        {TAB_GROUPS.map((group, gi) => (
-          <div key={gi} style={{ display: 'contents' }}>
-            {gi > 0 && <span className={styles.tabDivider} />}
-            {group.tabs.map(t => (
-              <button
-                key={t.id}
-                className={`${styles.tab} ${tab === t.id ? styles.tabActive : ''}`}
-                onClick={() => setTab(t.id)}
-              >
-                {t.icon} {t.label}
-              </button>
-            ))}
-          </div>
-        ))}
-      </div>
-
-      <div className={styles.content}>
-        {tab === 'results'   && <ResultsTab />}
-        {tab === 'materials' && <MaterialsTab kind="material" />}
-        {tab === 'lessons'   && <LessonsTab />}
-        {tab === 'revisions' && <MaterialsTab kind="revision" />}
-        {tab === 'account'   && <AccountTab />}
-        {tab === 'feed'      && <FeedTab />}
-        {tab === 'store'     && <StoreTab />}
-        {tab === 'mycourses' && <MyCoursesTab />}
-      </div>
-    </div>
+    <DashboardShell title="بوابة الطالب" sections={TAB_SECTIONS} activeId={tab} onSelect={setTab}>
+      {tab === 'results'   && <ResultsTab />}
+      {tab === 'materials' && <MaterialsTab kind="material" />}
+      {tab === 'lessons'   && <LessonsTab />}
+      {tab === 'revisions' && <MaterialsTab kind="revision" />}
+      {tab === 'account'   && <AccountTab />}
+      {tab === 'feed'      && <FeedTab />}
+      {tab === 'store'     && <StoreTab />}
+      {tab === 'mycourses' && <MyCoursesTab />}
+    </DashboardShell>
   )
 }

@@ -6,6 +6,7 @@ class Quiz(models.Model):
     topic             = models.ForeignKey('courses.Topic', on_delete=models.CASCADE)
     title             = models.CharField(max_length=300)
     title_en          = models.CharField(max_length=300, blank=True)
+    order             = models.PositiveIntegerField(default=0)
     time_limit        = models.PositiveIntegerField(null=True, blank=True, help_text='بالدقائق')
     pass_mark         = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0'))
     attempts_allowed  = models.PositiveIntegerField(default=0)

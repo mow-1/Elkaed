@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { getMyEnrollments, getCourse } from '../../api/courses'
 import { blank, load } from './shared'
 import VideoModal from './VideoModal'
+import TakeQuizModal from './TakeQuizModal'
+import AssignmentRow from './AssignmentRow'
 import styles from '../../pages/PortalPage.module.css'
 
 const STATUS_AR = { active: 'نشط', expired: 'منتهي', cancelled: 'ملغي' }
@@ -21,20 +23,26 @@ function CourseLessons({ slug }) {
       {topics.map(topic => (
         <div key={topic.id}>
           <p className={styles.topicHeading}>{topic.title}</p>
-          {topic.lessons.map(lesson => <LessonRow key={lesson.id} lesson={lesson} />)}
+          {(topic.items ?? []).map(item => <CurriculumItemRow key={`${item.type}-${item.id}`} item={item} />)}
         </div>
       ))}
     </div>
   )
 }
 
-function LessonRow({ lesson }) {
-  const [watching, setWatching] = useState(false)
+function CurriculumItemRow({ item }) {
+  const [open, setOpen] = useState(false)
+
+  if (item.type === 'assignment') return <AssignmentRow item={item} />
+
   return (
     <div className={styles.lessonRow}>
-      <span>{lesson.title}</span>
-      <button className={styles.openBtnSmall} onClick={() => setWatching(true)}>شاهد</button>
-      {watching && <VideoModal lessonId={lesson.id} onClose={() => setWatching(false)} />}
+      <span>{item.type === 'quiz' ? '📝 ' : ''}{item.title}</span>
+      <button className={styles.openBtnSmall} onClick={() => setOpen(true)}>
+        {item.type === 'quiz' ? 'ابدأ الاختبار' : 'شاهد'}
+      </button>
+      {open && item.type === 'quiz' && <TakeQuizModal quizId={item.id} onClose={() => setOpen(false)} />}
+      {open && item.type === 'lesson' && <VideoModal lessonId={item.id} onClose={() => setOpen(false)} />}
     </div>
   )
 }

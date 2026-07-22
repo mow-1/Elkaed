@@ -2,6 +2,7 @@ from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404
 
 from django.db.models import Q
@@ -11,11 +12,23 @@ from apps.attendance.services import effective_price as apply_discount
 from apps.commerce.models import FlashSale, Order, OrderItem
 from apps.notifications.tasks import send_whatsapp_task
 from apps.users.models import User as UserModel
-from apps.users.permissions import is_admin
-from .models import Course, Enrollment, Lesson, LessonAccessGrant, LessonProgress, Material
+from apps.users.permissions import is_admin, is_ops, is_course_owner
+from apps.videos.models import Video
+from apps.videos.tasks import transcode_video_task
+from .models import (Course, Category, Enrollment, Lesson, LessonAccessGrant, LessonProgress, Material,
+                      Topic, Assignment, AssignmentSubmission)
 from .serializers import (CourseListSerializer, CourseDetailSerializer, EnrollmentSerializer,
                            MaterialSerializer, AdminMaterialSerializer, MyLessonSerializer,
-                           InstructorSerializer)
+                           InstructorSerializer, AdminCourseSerializer, AdminTopicSerializer,
+                           AdminLessonSerializer, AdminAssignmentSerializer,
+                           AssignmentSubmissionSerializer, CategorySerializer)
+
+
+class CategoryListView(generics.ListAPIView):
+    """Public, read-only — feeds the course-builder's category picker."""
+    serializer_class   = CategorySerializer
+    permission_classes = [AllowAny]
+    queryset            = Category.objects.all()
 
 
 def _check_enrollment_cap(course):
@@ -282,6 +295,218 @@ class AdminMaterialDetailView(APIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
         get_object_or_404(Material, pk=pk).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def _can_author(user):
+    """Course-builder access: admin/staff (any course) or an instructor (their own)."""
+    return is_ops(user) or (user and user.is_authenticated and user.role == 'instructor')
+
+
+def _next_order(queryset):
+    last = queryset.order_by('-order').first()
+    return (last.order + 1) if last else 0
+
+
+class AdminCourseListView(generics.ListCreateAPIView):
+    """Course-builder entry point. Instructors only ever see/create their own
+    courses; admin/staff see everything — mirrors AdminMaterialListView's shape."""
+    serializer_class = AdminCourseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = Course.objects.select_related('instructor', 'category')
+        if not is_ops(self.request.user):
+            qs = qs.filter(instructor=self.request.user)
+        return qs
+
+    def list(self, request, *args, **kwargs):
+        if not _can_author(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        return super().list(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        if not _can_author(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        # Whoever creates a course owns it — keeps instructor assignment simple;
+        # reassigning a course to a different instructor is a Django-admin action.
+        serializer.save(instructor=self.request.user)
+
+
+class AdminCourseDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        course = get_object_or_404(Course, pk=pk)
+        if not is_course_owner(request.user, course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        return Response(AdminCourseSerializer(course).data)
+
+    def patch(self, request, pk):
+        course = get_object_or_404(Course, pk=pk)
+        if not is_course_owner(request.user, course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        ser = AdminCourseSerializer(course, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)
+
+    def delete(self, request, pk):
+        course = get_object_or_404(Course, pk=pk)
+        if not is_course_owner(request.user, course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        try:
+            course.delete()
+        except ProtectedError:
+            return Response(
+                {'detail': 'لا يمكن حذف كورس له طلاب مشتركون. أوقف النشر بدلاً من الحذف.'},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminTopicListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, course_id):
+        course = get_object_or_404(Course, pk=course_id)
+        if not is_course_owner(request.user, course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        ser = AdminTopicSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        topic = ser.save(course=course, order=_next_order(Topic.objects.filter(course=course)))
+        return Response(AdminTopicSerializer(topic).data, status=status.HTTP_201_CREATED)
+
+
+class AdminTopicDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        topic = get_object_or_404(Topic, pk=pk)
+        if not is_course_owner(request.user, topic.course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        ser = AdminTopicSerializer(topic, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)
+
+    def delete(self, request, pk):
+        topic = get_object_or_404(Topic, pk=pk)
+        if not is_course_owner(request.user, topic.course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        topic.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminLessonListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, topic_id):
+        topic = get_object_or_404(Topic, pk=topic_id)
+        if not is_course_owner(request.user, topic.course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        ser = AdminLessonSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        lesson = ser.save(topic=topic, order=_next_order(Lesson.objects.filter(topic=topic)))
+
+        raw_file = request.FILES.get('raw_file')
+        if raw_file:
+            video = Video.objects.create(uploaded_by=request.user, raw_file=raw_file)
+            lesson.video = video
+            lesson.video_source = 'self_hosted'
+            lesson.save(update_fields=['video', 'video_source'])
+            transcode_video_task.delay(video.pk)
+
+        return Response(AdminLessonSerializer(lesson).data, status=status.HTTP_201_CREATED)
+
+
+class AdminLessonDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        lesson = get_object_or_404(Lesson, pk=pk)
+        if not is_course_owner(request.user, lesson.topic.course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        ser = AdminLessonSerializer(lesson, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+
+        raw_file = request.FILES.get('raw_file')
+        if raw_file:
+            video = lesson.video or Video.objects.create(uploaded_by=request.user)
+            video.raw_file = raw_file
+            video.status = 'uploading'
+            video.save()
+            lesson.video = video
+            lesson.video_source = 'self_hosted'
+            lesson.save(update_fields=['video', 'video_source'])
+            transcode_video_task.delay(video.pk)
+
+        return Response(AdminLessonSerializer(lesson).data)
+
+    def delete(self, request, pk):
+        lesson = get_object_or_404(Lesson, pk=pk)
+        if not is_course_owner(request.user, lesson.topic.course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        lesson.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminAssignmentListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, topic_id):
+        topic = get_object_or_404(Topic, pk=topic_id)
+        if not is_course_owner(request.user, topic.course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        ser = AdminAssignmentSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        assignment = ser.save(topic=topic, order=_next_order(Assignment.objects.filter(topic=topic)))
+        return Response(AdminAssignmentSerializer(assignment).data, status=status.HTTP_201_CREATED)
+
+
+class AdminAssignmentDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        assignment = get_object_or_404(Assignment, pk=pk)
+        if not is_course_owner(request.user, assignment.topic.course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        ser = AdminAssignmentSerializer(assignment, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)
+
+    def delete(self, request, pk):
+        assignment = get_object_or_404(Assignment, pk=pk)
+        if not is_course_owner(request.user, assignment.topic.course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        assignment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AssignmentSubmitView(APIView):
+    """Student-facing: submit (or resubmit — overwrites via update_or_create,
+    no grading workflow) a file for an assignment."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        assignment = get_object_or_404(Assignment, pk=pk)
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'detail': 'الملف مطلوب.'}, status=status.HTTP_400_BAD_REQUEST)
+        submission, _ = AssignmentSubmission.objects.update_or_create(
+            assignment=assignment, student=request.user, defaults={'file': file},
+        )
+        return Response(AssignmentSubmissionSerializer(submission).data)
+
+    def get(self, request, pk):
+        submission = AssignmentSubmission.objects.filter(assignment_id=pk, student=request.user).first()
+        if not submission:
+            return Response({'detail': 'لم يتم التسليم بعد.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(AssignmentSubmissionSerializer(submission).data)
 
 
 class MyLessonsView(APIView):

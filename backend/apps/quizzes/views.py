@@ -10,11 +10,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
-from apps.courses.models import Enrollment
+from apps.courses.models import Enrollment, Topic
 from apps.notifications.tasks import send_whatsapp_task
+from apps.users.permissions import is_course_owner
 from .models import Quiz, QuizAttempt, AttemptAnswer
 from .serializers import (
-    QuizDetailSerializer, SubmitAttemptSerializer, AttemptResultSerializer, MyAttemptSerializer
+    QuizDetailSerializer, SubmitAttemptSerializer, AttemptResultSerializer, MyAttemptSerializer,
+    AdminQuizSerializer,
 )
 
 
@@ -192,6 +194,39 @@ class MyAttemptsView(APIView):
             .order_by('-started_at')
         )
         return Response(MyAttemptSerializer(attempts, many=True).data)
+
+
+class AdminQuizDetailView(APIView):
+    """Course-builder: one quiz per topic. GET fetches (with an empty-shell
+    default if the topic has none yet); PUT creates-or-replaces it wholesale
+    via AdminQuizSerializer's nested write."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, topic_id):
+        topic = get_object_or_404(Topic, pk=topic_id)
+        if not is_course_owner(request.user, topic.course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        quiz = Quiz.objects.prefetch_related('questions__choices').filter(topic=topic).first()
+        if not quiz:
+            return Response(None)
+        return Response(AdminQuizSerializer(quiz).data)
+
+    def put(self, request, topic_id):
+        topic = get_object_or_404(Topic, pk=topic_id)
+        if not is_course_owner(request.user, topic.course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        existing = Quiz.objects.filter(topic=topic).first()
+        ser = AdminQuizSerializer(existing, data=request.data)
+        ser.is_valid(raise_exception=True)
+        quiz = ser.save(topic=topic)
+        return Response(AdminQuizSerializer(quiz).data, status=status.HTTP_200_OK if existing else status.HTTP_201_CREATED)
+
+    def delete(self, request, topic_id):
+        topic = get_object_or_404(Topic, pk=topic_id)
+        if not is_course_owner(request.user, topic.course):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        Quiz.objects.filter(topic=topic).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class QuizExportView(APIView):

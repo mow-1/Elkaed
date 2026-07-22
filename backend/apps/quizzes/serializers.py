@@ -25,6 +25,64 @@ class QuizDetailSerializer(serializers.ModelSerializer):
                   'is_locked', 'shuffle_questions', 'questions']
 
 
+class AdminAnswerChoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = AnswerChoice
+        fields = ['id', 'text', 'text_en', 'is_correct', 'order', 'image']
+        extra_kwargs = {'order': {'required': False}}
+
+
+class AdminQuestionSerializer(serializers.ModelSerializer):
+    choices = AdminAnswerChoiceSerializer(many=True)
+
+    class Meta:
+        model  = Question
+        fields = ['id', 'text', 'text_en', 'question_type', 'mark', 'order',
+                  'explanation', 'explanation_en', 'image', 'choices']
+        extra_kwargs = {'order': {'required': False}}
+
+
+class AdminQuizSerializer(serializers.ModelSerializer):
+    """Writable nested serializer: a quiz with its questions and each question's
+    choices, created/synced in one call — DRF doesn't do writable nested
+    serializers automatically, so create()/update() are overridden below.
+    order is auto-assigned from list position when not supplied, so the
+    frontend never has to manage indices."""
+    questions = AdminQuestionSerializer(many=True)
+
+    class Meta:
+        model  = Quiz
+        fields = ['id', 'topic', 'title', 'title_en', 'order', 'time_limit', 'pass_mark',
+                  'attempts_allowed', 'is_locked', 'hide_results', 'shuffle_questions',
+                  'shuffle_answers', 'questions']
+        extra_kwargs = {'topic': {'required': False}, 'order': {'required': False}}
+
+    def _save_questions(self, quiz, questions_data):
+        quiz.questions.all().delete()  # simplest correct sync: replace wholesale on every save
+        for q_index, q_data in enumerate(questions_data):
+            choices_data = q_data.pop('choices')
+            q_data.setdefault('order', q_index)
+            question = Question.objects.create(quiz=quiz, **q_data)
+            for c_index, c_data in enumerate(choices_data):
+                c_data.setdefault('order', c_index)
+                AnswerChoice.objects.create(question=question, **c_data)
+
+    def create(self, validated_data):
+        questions_data = validated_data.pop('questions')
+        quiz = Quiz.objects.create(**validated_data)
+        self._save_questions(quiz, questions_data)
+        return quiz
+
+    def update(self, quiz, validated_data):
+        questions_data = validated_data.pop('questions', None)
+        for attr, value in validated_data.items():
+            setattr(quiz, attr, value)
+        quiz.save()
+        if questions_data is not None:
+            self._save_questions(quiz, questions_data)
+        return quiz
+
+
 class AttemptAnswerInputSerializer(serializers.Serializer):
     question_id  = serializers.IntegerField()
     given_answer = serializers.CharField()

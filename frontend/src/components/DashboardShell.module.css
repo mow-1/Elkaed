@@ -1,0 +1,144 @@
+.page {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 40px 24px;
+  direction: rtl;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.heading {
+  font-family: 'Cairo', 'Almarai', sans-serif;
+  font-weight: 900;
+  font-size: 28px;
+  color: var(--primary);
+}
+
+.hamburger {
+  display: none;
+  background: none;
+  border: 1.5px solid var(--sand-border);
+  border-radius: 8px;
+  font-size: 20px;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 6px 10px;
+  line-height: 1;
+}
+
+.layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+}
+
+/* ── sidebar ──────────────────────────────────────────────────────────── */
+.sidebar {
+  flex-shrink: 0;
+  width: 240px;
+  background: white;
+  border: 1px solid var(--sand-border);
+  border-radius: 14px;
+  padding: 14px;
+  position: sticky;
+  top: 88px;
+}
+
+.section {
+  margin-bottom: 18px;
+}
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.sectionLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold-mid);
+  padding: 0 10px;
+  margin-bottom: 6px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Almarai', sans-serif;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: right;
+  transition: background 0.15s, color 0.15s;
+}
+.navItem:hover {
+  background: var(--cream-soft);
+  color: var(--primary);
+}
+.navItemActive {
+  background: var(--primary);
+  color: white;
+  font-weight: 700;
+}
+.navItemActive:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.navIcon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.overlay {
+  display: none;
+}
+
+/* ── content ──────────────────────────────────────────────────────────── */
+.content {
+  flex: 1;
+  min-width: 0;
+  min-height: 400px;
+}
+
+/* ── mobile ───────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .hamburger {
+    display: block;
+  }
+
+  .sidebar {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 200;
+    border-radius: 0;
+    overflow-y: auto;
+    box-shadow: -8px 0 24px rgba(28, 35, 51, 0.15);
+  }
+
+  .sidebarOpen {
+    display: block;
+  }
+
+  .overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(28, 35, 51, 0.4);
+    z-index: 150;
+  }
+}

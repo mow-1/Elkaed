@@ -20,33 +20,80 @@ import ScanTab from '../components/admin/ScanTab'
 import ArrearsTab from '../components/admin/ArrearsTab'
 import RevenueReportTab from '../components/admin/RevenueReportTab'
 import MaterialsAdminTab from '../components/admin/MaterialsAdminTab'
+import CoursesTab from '../components/admin/CoursesTab'
+import InstructorStatsTab from '../components/admin/InstructorStatsTab'
+import DashboardShell from '../components/DashboardShell'
 import styles from './AdminPanelPage.module.css'
 
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
-const ADMIN_TABS = [
-  { id: 'customers', label: 'العملاء' },
-  { id: 'analytics', label: 'الإحصائيات' },
-  { id: 'banners', label: 'البانرات' },
-  { id: 'offers', label: 'العروض' },
-  { id: 'campaigns', label: 'الحملات' },
-  { id: 'activity', label: 'سجل العمليات' },
-  { id: 'pricing', label: 'إعدادات التسعير' },
-  { id: 'discounts', label: 'خصومات الطلاب' },
-  { id: 'import', label: 'استيراد طلاب السنتر' },
-  { id: 'groups', label: 'مجاميع السنتر' },
-  { id: 'packages', label: 'باقات الحصص' },
-  { id: 'attendance', label: 'الحضور' },
-  { id: 'scan', label: 'مسح الحضور' },
-  { id: 'arrears', label: 'متأخرات' },
-  { id: 'revenue', label: 'تقرير الإيرادات' },
-  { id: 'materials', label: 'الملفات والمراجعات' },
+const ADMIN_SECTIONS = [
+  {
+    label: 'نظرة عامة',
+    items: [
+      { id: 'customers', label: 'العملاء', icon: '👥' },
+      { id: 'analytics', label: 'الإحصائيات', icon: '📊' },
+    ],
+  },
+  {
+    label: 'المحتوى والتسويق',
+    items: [
+      { id: 'courses', label: 'الكورسات', icon: '📚' },
+      { id: 'banners', label: 'البانرات', icon: '🖼️' },
+      { id: 'offers', label: 'العروض', icon: '🏷️' },
+      { id: 'campaigns', label: 'الحملات', icon: '📣' },
+      { id: 'materials', label: 'الملفات والمراجعات', icon: '📁' },
+    ],
+  },
+  {
+    label: 'الطلاب',
+    items: [
+      { id: 'import', label: 'استيراد طلاب السنتر', icon: '📥' },
+      { id: 'groups', label: 'مجاميع السنتر', icon: '🧑‍🤝‍🧑' },
+      { id: 'discounts', label: 'خصومات الطلاب', icon: '💸' },
+    ],
+  },
+  {
+    label: 'الحضور والباقات',
+    items: [
+      { id: 'attendance', label: 'الحضور', icon: '🗓️' },
+      { id: 'scan', label: 'مسح الحضور', icon: '📷' },
+      { id: 'packages', label: 'باقات الحصص', icon: '📦' },
+      { id: 'arrears', label: 'متأخرات', icon: '⏰' },
+    ],
+  },
+  {
+    label: 'المالية',
+    items: [
+      { id: 'revenue', label: 'تقرير الإيرادات', icon: '💰' },
+      { id: 'pricing', label: 'إعدادات التسعير', icon: '⚙️' },
+    ],
+  },
+  {
+    label: 'النظام',
+    items: [
+      { id: 'activity', label: 'سجل العمليات', icon: '📜' },
+    ],
+  },
 ]
 
-const ASSISTANT_TABS = [
-  { id: 'import', label: 'استيراد طلاب السنتر' },
-  { id: 'attendance', label: 'الحضور' },
-  { id: 'scan', label: 'مسح الحضور' },
+const ASSISTANT_SECTIONS = [
+  {
+    items: [
+      { id: 'import', label: 'استيراد طلاب السنتر', icon: '📥' },
+      { id: 'attendance', label: 'الحضور', icon: '🗓️' },
+      { id: 'scan', label: 'مسح الحضور', icon: '📷' },
+    ],
+  },
+]
+
+const INSTRUCTOR_SECTIONS = [
+  {
+    items: [
+      { id: 'courses', label: 'كورساتي', icon: '📚' },
+      { id: 'my-stats', label: 'الإحصائيات', icon: '📊' },
+    ],
+  },
 ]
 
 const YEAR_LABELS = { '1st': 'أول ثانوي', '2nd': 'ثاني ثانوي', '3rd': 'ثالث ثانوي' }
@@ -59,50 +106,41 @@ export default function AdminPanelPage() {
   const [tab, setTab] = useState('customers')
 
   useEffect(() => {
-    if (user && !['admin', 'staff', 'assistant'].includes(user.role)) navigate('/')
+    if (user && !['admin', 'staff', 'assistant', 'instructor'].includes(user.role)) navigate('/')
   }, [user, navigate])
 
   useEffect(() => {
     if (user?.role === 'assistant') setTab('import')
+    if (user?.role === 'instructor') setTab('courses')
   }, [user])
 
-  if (!user || !['admin', 'staff', 'assistant'].includes(user.role)) return null
+  if (!user || !['admin', 'staff', 'assistant', 'instructor'].includes(user.role)) return null
 
-  const TABS = user.role === 'assistant' ? ASSISTANT_TABS : ADMIN_TABS
+  const sections = user.role === 'assistant' ? ASSISTANT_SECTIONS
+    : user.role === 'instructor' ? INSTRUCTOR_SECTIONS
+    : ADMIN_SECTIONS
 
   return (
-    <div className={styles.page}>
-      <h1 className={styles.heading}>لوحة الإدارة</h1>
-      <div className={styles.tabBar}>
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            className={`${styles.tab} ${tab === t.id ? styles.activeTab : ''}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <div className={styles.content}>
-        {tab === 'customers'  && <CustomersTab />}
-        {tab === 'analytics'  && <AnalyticsTab />}
-        {tab === 'banners'    && <BannersTab />}
-        {tab === 'offers'     && <OffersTab />}
-        {tab === 'campaigns'  && <CampaignsTab />}
-        {tab === 'activity'   && <ActivityLogTab />}
-        {tab === 'pricing'    && <PricingSettingsTab />}
-        {tab === 'discounts'  && <DiscountsTab />}
-        {tab === 'import'     && <CsvImportTab />}
-        {tab === 'groups'     && <GroupsTab />}
-        {tab === 'packages'   && <PackagesTab />}
-        {tab === 'attendance' && <AttendanceTab />}
-        {tab === 'scan'       && <ScanTab />}
-        {tab === 'arrears'    && <ArrearsTab />}
-        {tab === 'revenue'    && <RevenueReportTab />}
-        {tab === 'materials'  && <MaterialsAdminTab />}
-      </div>
-    </div>
+    <DashboardShell title="لوحة الإدارة" sections={sections} activeId={tab} onSelect={setTab}>
+      {tab === 'customers'  && <CustomersTab />}
+      {tab === 'analytics'  && <AnalyticsTab />}
+      {tab === 'courses'    && <CoursesTab />}
+      {tab === 'my-stats'   && <InstructorStatsTab />}
+      {tab === 'banners'    && <BannersTab />}
+      {tab === 'offers'     && <OffersTab />}
+      {tab === 'campaigns'  && <CampaignsTab />}
+      {tab === 'activity'   && <ActivityLogTab />}
+      {tab === 'pricing'    && <PricingSettingsTab />}
+      {tab === 'discounts'  && <DiscountsTab />}
+      {tab === 'import'     && <CsvImportTab />}
+      {tab === 'groups'     && <GroupsTab />}
+      {tab === 'packages'   && <PackagesTab />}
+      {tab === 'attendance' && <AttendanceTab />}
+      {tab === 'scan'       && <ScanTab />}
+      {tab === 'arrears'    && <ArrearsTab />}
+      {tab === 'revenue'    && <RevenueReportTab />}
+      {tab === 'materials'  && <MaterialsAdminTab />}
+    </DashboardShell>
   )
 }
 

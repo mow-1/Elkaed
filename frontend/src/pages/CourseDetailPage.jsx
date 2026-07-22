@@ -127,20 +127,24 @@ export default function CourseDetailPage() {
               >
                 <span className={styles.topicTitle}>{topic.title}</span>
                 <span className={styles.topicMeta}>
-                  {topic.lessons.length} درس {openTopics[topic.id] ? '▲' : '▼'}
+                  {(topic.items ?? []).length} عنصر {openTopics[topic.id] ? '▲' : '▼'}
                 </span>
               </button>
               {openTopics[topic.id] && (
                 <ul className={styles.lessonList}>
-                  {topic.lessons.map(lesson => (
-                    <li key={lesson.id} className={styles.lessonItem}>
-                      <span className={styles.lessonTitle}>{lesson.title}</span>
+                  {(topic.items ?? []).map(item => (
+                    <li key={`${item.type}-${item.id}`} className={styles.lessonItem}>
+                      <span className={styles.lessonTitle}>
+                        {item.type === 'quiz' ? '📝 ' : item.type === 'assignment' ? '📄 ' : ''}
+                        {item.title}
+                      </span>
                       <span className={styles.lessonMeta}>
-                        {lesson.is_free_preview
-                          ? <span className={styles.freeChip}>مجاني</span>
-                          : <span>🔒</span>
-                        }
-                        <span className={styles.duration}>{formatDuration(lesson.duration_seconds)}</span>
+                        {item.type === 'lesson' && (
+                          item.is_free_preview
+                            ? <span className={styles.freeChip}>مجاني</span>
+                            : <span>🔒</span>
+                        )}
+                        {item.type === 'lesson' && <span className={styles.duration}>{formatDuration(item.duration_seconds)}</span>}
                       </span>
                     </li>
                   ))}

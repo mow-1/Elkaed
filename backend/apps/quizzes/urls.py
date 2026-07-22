@@ -1,9 +1,10 @@
 from django.urls import path
 from .views import (QuizDetailView, StartAttemptView, SubmitAttemptView, AttemptResultView,
-                     QuizExportView, MyAttemptsView)
+                     QuizExportView, MyAttemptsView, AdminQuizDetailView)
 
 urlpatterns = [
     path('my-attempts/',                      MyAttemptsView.as_view(),   name='my_attempts'),
+    path('admin/topics/<int:topic_id>/quiz/', AdminQuizDetailView.as_view(), name='admin_quiz_detail'),
     path('<int:quiz_id>/',                    QuizDetailView.as_view(),   name='quiz_detail'),
     path('<int:quiz_id>/start/',              StartAttemptView.as_view(), name='quiz_start'),
     path('attempts/<int:attempt_id>/submit/', SubmitAttemptView.as_view(), name='quiz_submit'),
