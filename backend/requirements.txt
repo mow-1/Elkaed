@@ -19,3 +19,4 @@ tqdm==4.66.4
 PyMySQL==1.1.1
 qrcode==8.2
 reportlab==4.4.5
+gunicorn==22.0.0
