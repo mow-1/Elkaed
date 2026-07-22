@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getCourses } from '../api/courses'
+import { getCourses, getInstructors } from '../api/courses'
 import { GRADES } from '../data/courses'
 import CourseCard, { SkeletonCard } from '../components/CourseCard'
 import styles from '../components/Courses.module.css'
@@ -12,6 +12,7 @@ function mapApiCourse(c) {
     slug: c.slug,
     title: c.title,
     grade: c.category_name ?? '—',
+    instructorName: c.instructor_name,
     price: `${c.price} جنيه`,
     students: 0,
     lessons: '—',
@@ -26,22 +27,32 @@ function pageFromUrl(url) {
 
 export default function CoursesListPage() {
   const [activeGrade, setActiveGrade] = useState('الكل')
+  const [activeTeacher, setActiveTeacher] = useState('all')
+  const [teachers, setTeachers] = useState([])
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(null)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    getInstructors()
+      .then(r => r.ok ? r.json() : [])
+      .then(list => setTeachers(Array.isArray(list) ? list : []))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
     setLoading(true)
     const params = new URLSearchParams()
     if (search.trim()) params.set('search', search.trim())
     if (GRADE_TO_YEAR[activeGrade]) params.set('category__academic_year', GRADE_TO_YEAR[activeGrade])
+    if (activeTeacher !== 'all') params.set('instructor', activeTeacher)
     if (page) params.set('page', page)
     getCourses(params.toString())
       .then(res => res.ok ? res.json() : null)
       .then(d => { if (d) setData(d) })
       .finally(() => setLoading(false))
-  }, [activeGrade, search, page])
+  }, [activeGrade, activeTeacher, search, page])
 
   const courses = (data?.results ?? []).map(mapApiCourse)
 
@@ -80,6 +91,26 @@ export default function CoursesListPage() {
             </button>
           ))}
         </div>
+
+        {teachers.length > 1 && (
+          <div className={styles.pills} style={{ marginTop: 10 }}>
+            <button
+              className={`${styles.pill} ${activeTeacher === 'all' ? styles.pillActive : ''}`}
+              onClick={() => { setActiveTeacher('all'); setPage(null) }}
+            >
+              كل المدرسين
+            </button>
+            {teachers.map(t => (
+              <button
+                key={t.id}
+                className={`${styles.pill} ${activeTeacher === String(t.id) ? styles.pillActive : ''}`}
+                onClick={() => { setActiveTeacher(String(t.id)); setPage(null) }}
+              >
+                {t.full_name}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className={styles.grid}>
           {loading

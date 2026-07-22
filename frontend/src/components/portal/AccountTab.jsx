@@ -1,15 +1,139 @@
 import { useEffect, useRef, useState } from 'react'
 import { changePassword, getMyQrCode, getMyIdCardPdf } from '../../api/auth'
-import { getWallet, topUpWallet } from '../../api/commerce'
+import { getWallet, topUpWallet, getOrders } from '../../api/commerce'
 import { getWalletHistory } from '../../api/portal'
+import { getNotifPrefs, updateNotifPrefs } from '../../api/notifications'
 import { useAuth } from '../../context/AuthContext'
 import { blank, load } from './shared'
 import ProfileForm from '../ProfileForm'
 import styles from '../../pages/PortalPage.module.css'
 
+const ROLE_AR = { student: 'طالب', instructor: 'مدرس', admin: 'مدير' }
+const YEAR_AR = { '1st': 'الأول الثانوي', '2nd': 'الثاني الثانوي', '3rd': 'الثالث الثانوي' }
+const TYPE_AR = { center: 'سنتر', online: 'أونلاين' }
+const ORDER_STATUS_AR = {
+  completed: { background: '#D1FAE5', color: '#065F46', label: 'مكتمل' },
+  pending:   { background: 'var(--cream-soft)', color: 'var(--gold-mid)', label: 'معلق' },
+  cancelled: { background: '#FEE2E2', color: '#991B1B', label: 'ملغي' },
+}
+const NOTIF_LABELS = {
+  quiz_result:          'نتائج الاختبارات',
+  enrollment_confirmed: 'تأكيد التسجيل',
+  order_status:         'تغيير حالة الطلب',
+  campaign:             'الرسائل التسويقية',
+}
+
 function pageFromUrl(url) {
   if (!url) return null
   try { return new URL(url).searchParams.get('page') } catch { return null }
+}
+
+function ProfileInfoBox() {
+  const { user } = useAuth()
+  const fields = [
+    { label: 'رقم الهاتف',   value: user.phone ?? '—' },
+    { label: 'نوع الحساب',   value: ROLE_AR[user.role] ?? user.role ?? '—' },
+    { label: 'الصف الدراسي', value: YEAR_AR[user.academic_year] ?? user.academic_year ?? '—' },
+    { label: 'طريقة التعلم', value: TYPE_AR[user.student_type] ?? user.student_type ?? '—' },
+    { label: 'رصيد المحفظة', value: `${user.wallet_balance ?? '0.00'} ج.م` },
+  ]
+  return (
+    <div className={styles.profileBox}>
+      {fields.map(f => (
+        <div key={f.label} className={styles.profileField}>
+          <p className={styles.fieldLabel}>{f.label}</p>
+          <p className={styles.fieldValue}>{f.value}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function OrdersBox() {
+  const [state, setState] = useState(blank())
+  useEffect(() => { load(getOrders, setState) }, [])
+
+  const list = Array.isArray(state.data) ? state.data : (state.data?.results ?? [])
+
+  return (
+    <div className={styles.formBox}>
+      <h3 className={styles.sectionHeading}>طلباتي</h3>
+      {state.loading && <p className={styles.loading}>جارٍ التحميل...</p>}
+      {state.error && (
+        <div className={styles.errorRow}>
+          <span>حدث خطأ في تحميل البيانات</span>
+          <button className={styles.retryBtn} onClick={() => load(getOrders, setState)}>إعادة المحاولة</button>
+        </div>
+      )}
+      {!state.loading && !state.error && !list.length && <p className={styles.empty}>لا توجد طلبات بعد.</p>}
+      {!state.loading && !state.error && list.map((order, i) => {
+        const chip = ORDER_STATUS_AR[order.status] ?? ORDER_STATUS_AR.pending
+        const date = order.created_at ? new Date(order.created_at).toLocaleDateString('ar-EG') : ''
+        return (
+          <div key={order.id ?? i} className={styles.orderCard}>
+            <div className={styles.orderMeta}>
+              <div className={styles.orderHeaderInfo}>
+                <span className={styles.orderId}>طلب #{order.id}</span>
+                {date && <span className={styles.orderDate}>{date}</span>}
+              </div>
+              <span className={styles.badgeGreen} style={{ background: chip.background, color: chip.color }}>
+                {chip.label}
+              </span>
+            </div>
+            {order.total != null && <p className={styles.orderTotal}>الإجمالي: {order.total} ج.م</p>}
+            {order.items?.length > 0 && (
+              <ul className={styles.orderItems}>
+                {order.items.map((item, j) => <li key={j}>{item.title} — {item.price} ج.م</li>)}
+              </ul>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function NotifPrefsBox() {
+  const [state, setState] = useState(blank())
+  useEffect(() => { load(getNotifPrefs, setState) }, [])
+
+  async function handleToggle(key) {
+    const current = state.data?.[key] ?? false
+    setState(s => ({ ...s, data: { ...s.data, [key]: !current } }))
+    try {
+      const r = await updateNotifPrefs({ notif_type: key, enabled: !current })
+      if (!r.ok) throw new Error()
+    } catch {
+      setState(s => ({ ...s, data: { ...s.data, [key]: current } }))
+    }
+  }
+
+  return (
+    <div className={styles.formBox}>
+      <h3 className={styles.sectionHeading}>تفضيلات الإشعارات</h3>
+      {state.loading && <p className={styles.loading}>جارٍ التحميل...</p>}
+      {state.error && (
+        <div className={styles.errorRow}>
+          <span>حدث خطأ في تحميل البيانات</span>
+          <button className={styles.retryBtn} onClick={() => load(getNotifPrefs, setState)}>إعادة المحاولة</button>
+        </div>
+      )}
+      {!state.loading && !state.error && Object.entries(NOTIF_LABELS).map(([key, label]) => (
+        <div key={key} className={styles.prefRow}>
+          <span className={styles.prefLabel}>{label}</span>
+          <label className={styles.toggleWrap}>
+            <input
+              type="checkbox"
+              className={styles.toggleInput}
+              checked={state.data?.[key] ?? false}
+              onChange={() => handleToggle(key)}
+            />
+            <span className={styles.slider} />
+          </label>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 function ChangePasswordForm({ forced }) {
@@ -215,9 +339,24 @@ export default function AccountTab() {
   return (
     <div className={styles.accountGrid}>
       {user?.must_change_password && <ChangePasswordForm forced />}
+
+      <h2 className={styles.groupHeading}>الملف الشخصي</h2>
+      <ProfileInfoBox />
       <ProfileForm />
-      {!user?.must_change_password && <ChangePasswordForm forced={false} />}
+
+      {!user?.must_change_password && (
+        <>
+          <h2 className={styles.groupHeading}>الأمان</h2>
+          <ChangePasswordForm forced={false} />
+        </>
+      )}
+
+      <h2 className={styles.groupHeading}>المحفظة والطلبات</h2>
       <WalletHistoryTable />
+      <OrdersBox />
+
+      <h2 className={styles.groupHeading}>الإعدادات وبطاقتي</h2>
+      <NotifPrefsBox />
       <QrAndIdCard />
     </div>
   )

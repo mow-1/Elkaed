@@ -35,10 +35,19 @@
 /* ── tab bar ──────────────────────────────────────────────────────────── */
 .tabBar {
   display: flex;
+  align-items: center;
   gap: 4px;
   border-bottom: 1px solid var(--sand-border);
   margin-bottom: 28px;
   overflow-x: auto;
+  overflow-y: hidden;
+}
+.tabDivider {
+  width: 1px;
+  align-self: stretch;
+  margin: 6px 8px;
+  background: var(--sand-border);
+  flex-shrink: 0;
 }
 .tab {
   background: none;
@@ -53,6 +62,7 @@
   transition: color 0.15s;
   font-family: 'Almarai', sans-serif;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .tab:hover {
   color: var(--primary);
@@ -291,6 +301,18 @@
   display: grid;
   gap: 20px;
 }
+.groupHeading {
+  font-family: 'Cairo', 'Almarai', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--gold-mid);
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--sand-border);
+  margin-top: 4px;
+}
+.groupHeading:first-child {
+  margin-top: 0;
+}
 .formBox {
   background: white;
   border: 1px solid var(--sand-border);
@@ -457,6 +479,131 @@
 }
 .retryBtn:hover {
   background: #7F1D1D;
+}
+
+/* ── order history (account tab) ─────────────────────────────────────── */
+.orderCard {
+  background: var(--cream, #fdfaf3);
+  border: 1px solid var(--sand-border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+}
+.orderMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.orderHeaderInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.orderId {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+}
+.orderDate {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.orderTotal {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.orderItems {
+  list-style: disc;
+  padding-right: 20px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.9;
+}
+
+/* ── notification prefs (account tab) ────────────────────────────────── */
+.prefRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.prefRow:last-child {
+  border-bottom: none;
+}
+.prefLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.toggleWrap {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.toggleInput {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  inset: 0;
+  background: #CBD5E1;
+  border-radius: 999px;
+  transition: background 0.25s;
+}
+.slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  right: 3px;
+  top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.25s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.toggleInput:checked + .slider {
+  background: var(--primary);
+}
+.toggleInput:checked + .slider::before {
+  transform: translateX(-20px);
+}
+
+/* ── read-only profile info (account tab) ────────────────────────────── */
+.profileBox {
+  background: white;
+  border: 1px solid var(--sand-border);
+  border-radius: 14px;
+  padding: 4px 20px;
+}
+.profileField {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.profileField:last-child {
+  border-bottom: none;
+}
+.fieldLabel {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.fieldValue {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
 }
 
 /* ── responsive ───────────────────────────────────────────────────────── */

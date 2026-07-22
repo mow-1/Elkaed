@@ -4,12 +4,12 @@ import { useAuth } from '../context/AuthContext'
 import { blank } from './portal/shared'
 import styles from '../pages/PortalPage.module.css'
 
-// Shared editable profile form (name + guardian phone) — used by both /portal's
-// Account tab and /dashboard's Profile tab, so there's exactly one place students
-// can actually edit their info, not a read-only display on one page and a working
-// form on the other.
+// Editable profile form (name + guardian phone), used by /portal's Account tab —
+// the one place students edit their info. Center students' info is managed via
+// the center roster (CSV import), so it's shown read-only here — matches the
+// server-side block in ProfileView.patch.
 export default function ProfileForm() {
-  const { reload } = useAuth()
+  const { user, reload } = useAuth()
   const [profile, setProfile] = useState(blank())
   const [form, setForm] = useState({ first_name: '', last_name: '', guardian_phone: '' })
   const [saving, setSaving] = useState(false)
@@ -44,6 +44,31 @@ export default function ProfileForm() {
 
   if (profile.loading) return <p className={styles.loading}>جارٍ التحميل...</p>
   if (profile.error) return <p className={styles.errorRow}>تعذّر تحميل بياناتك</p>
+
+  if (user?.student_type === 'center') {
+    return (
+      <div className={styles.formBox}>
+        <h3 className={styles.sectionHeading}>بياناتي</h3>
+        <p className={styles.forcedNote} style={{ marginBottom: 14 }}>
+          بياناتك مُدارة بواسطة السنتر — للتعديل تواصل مع الإدارة.
+        </p>
+        <div className={styles.profileBox}>
+          <div className={styles.profileField}>
+            <p className={styles.fieldLabel}>الاسم الأول</p>
+            <p className={styles.fieldValue}>{form.first_name || '—'}</p>
+          </div>
+          <div className={styles.profileField}>
+            <p className={styles.fieldLabel}>الاسم الأخير</p>
+            <p className={styles.fieldValue}>{form.last_name || '—'}</p>
+          </div>
+          <div className={styles.profileField}>
+            <p className={styles.fieldLabel}>رقم هاتف ولي الأمر</p>
+            <p className={styles.fieldValue}>{form.guardian_phone || '—'}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <form className={styles.formBox} onSubmit={handleSubmit}>

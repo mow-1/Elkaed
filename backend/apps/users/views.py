@@ -111,6 +111,14 @@ class ProfileView(APIView):
         return Response(UserProfileSerializer(request.user).data)
 
     def patch(self, request):
+        # Center students' info is managed via the center roster (CSV import / admin
+        # edit) so it stays in sync with attendance records and printed ID cards —
+        # self-edits here would silently drift from that source of truth.
+        if request.user.student_type == 'center':
+            return Response(
+                {'detail': 'بيانات طلاب السنتر تُدار بواسطة الإدارة، برجاء التواصل معها للتعديل.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         ser = UserProfileUpdateSerializer(request.user, data=request.data, partial=True)
         ser.is_valid(raise_exception=True)
         ser.save()

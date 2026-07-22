@@ -39,7 +39,7 @@ export default function CourseCard({ course: c }) {
       <div className={styles.cardBody}>
         <div className={styles.teacherRow}>
           <span className={styles.teacherAvatar}>𓂀</span>
-          <span className={styles.teacherName}>مصطفى عرفة</span>
+          <span className={styles.teacherName}>{c.instructorName ?? '—'}</span>
           <span className={styles.gradeChip}>الصف {c.grade}</span>
         </div>
 

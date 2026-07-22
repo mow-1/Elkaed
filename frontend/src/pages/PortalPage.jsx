@@ -11,22 +11,35 @@ import MyCoursesTab from '../components/portal/MyCoursesTab'
 import styles from './PortalPage.module.css'
 
 // All tabs are visible regardless of student_type (deliberate — overrides any
-// "online only" framing from earlier plan drafts).
-const TABS = [
-  { id: 'results',   label: 'النتائج' },
-  { id: 'materials', label: 'الملفات' },
-  { id: 'lessons',   label: 'الدروس' },
-  { id: 'revisions', label: 'المراجعات' },
-  { id: 'account',   label: 'حسابي' },
-  { id: 'feed',      label: 'الجديد' },
-  { id: 'store',     label: 'المتجر' },
-  { id: 'mycourses', label: 'كورساتي' },
+// "online only" framing from earlier plan drafts). Grouped so the tab bar
+// reads as "my learning / discover / account" instead of one flat row.
+const TAB_GROUPS = [
+  {
+    tabs: [
+      { id: 'mycourses', label: 'كورساتي',   icon: '📚' },
+      { id: 'lessons',   label: 'الدروس',    icon: '🎬' },
+      { id: 'revisions', label: 'المراجعات', icon: '🔁' },
+      { id: 'materials', label: 'الملفات',   icon: '📁' },
+      { id: 'results',   label: 'النتائج',   icon: '📝' },
+    ],
+  },
+  {
+    tabs: [
+      { id: 'feed',  label: 'الجديد', icon: '🆕' },
+      { id: 'store', label: 'المتجر', icon: '🛍️' },
+    ],
+  },
+  {
+    tabs: [
+      { id: 'account', label: 'حسابي', icon: '👤' },
+    ],
+  },
 ]
 
 export default function PortalPage() {
   const { user, loading } = useAuth()
   const navigate = useNavigate()
-  const [tab, setTab] = useState('results')
+  const [tab, setTab] = useState('mycourses')
 
   useEffect(() => {
     if (!loading && !user) navigate('/login', { replace: true })
@@ -46,14 +59,19 @@ export default function PortalPage() {
       <h1 className={styles.heading}>بوابة الطالب</h1>
 
       <div className={styles.tabBar}>
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            className={`${styles.tab} ${tab === t.id ? styles.tabActive : ''}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
+        {TAB_GROUPS.map((group, gi) => (
+          <div key={gi} style={{ display: 'contents' }}>
+            {gi > 0 && <span className={styles.tabDivider} />}
+            {group.tabs.map(t => (
+              <button
+                key={t.id}
+                className={`${styles.tab} ${tab === t.id ? styles.tabActive : ''}`}
+                onClick={() => setTab(t.id)}
+              >
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
         ))}
       </div>
 

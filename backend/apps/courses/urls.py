@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     CourseListView, CourseDetailView, EnrollView, MyEnrollmentsView, BulkEnrollView,
-    WatchlistToggleView, InstructorCoursesView, CourseStudentsView,
+    WatchlistToggleView, InstructorCoursesView, CourseStudentsView, InstructorListView,
     MaterialListView, AdminMaterialListView, AdminMaterialDetailView, MyLessonsView,
 )
 
@@ -18,6 +18,7 @@ urlpatterns = [
     path('watchlist/',                          WatchlistToggleView.as_view(),  name='watchlist_list'),
     path('watchlist/<int:lesson_id>/',          WatchlistToggleView.as_view(),  name='watchlist_toggle'),
     path('instructor/',                         InstructorCoursesView.as_view(), name='instructor_courses'),
+    path('instructors/',                        InstructorListView.as_view(),   name='instructor_list'),
     path('instructor/<int:course_id>/students/', CourseStudentsView.as_view(),   name='course_students'),
     path('materials/',                          MaterialListView.as_view(),       name='material_list'),
     path('admin/materials/',                    AdminMaterialListView.as_view(),  name='admin_material_list'),

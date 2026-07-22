@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import Navbar from './components/Navbar'
@@ -9,7 +9,6 @@ import LandingPage from './pages/LandingPage'
 
 const LoginPage       = lazy(() => import('./pages/LoginPage'))
 const RegisterPage    = lazy(() => import('./pages/RegisterPage'))
-const DashboardPage   = lazy(() => import('./pages/DashboardPage'))
 const PortalPage      = lazy(() => import('./pages/PortalPage'))
 const CoursesListPage  = lazy(() => import('./pages/CoursesListPage'))
 const CourseDetailPage  = lazy(() => import('./pages/CourseDetailPage'))
@@ -26,12 +25,12 @@ function PageLoader() {
 
 function Layout({ children }) {
   return (
-    <>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <main>{children}</main>
+      <main style={{ flex: 1 }}>{children}</main>
       <Footer />
       <WhatsAppBtn />
-    </>
+    </div>
   )
 }
 
@@ -45,7 +44,7 @@ export default function App() {
               <Route path="/" element={<Layout><LandingPage /></Layout>} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              <Route path="/dashboard" element={<Layout><DashboardPage /></Layout>} />
+              <Route path="/dashboard" element={<Navigate to="/portal" replace />} />
               <Route path="/portal" element={<Layout><PortalPage /></Layout>} />
               <Route path="/courses"        element={<Layout><CoursesListPage /></Layout>} />
               <Route path="/courses/:slug"  element={<Layout><CourseDetailPage /></Layout>} />

@@ -14,7 +14,8 @@ from apps.users.models import User as UserModel
 from apps.users.permissions import is_admin
 from .models import Course, Enrollment, Lesson, LessonAccessGrant, LessonProgress, Material
 from .serializers import (CourseListSerializer, CourseDetailSerializer, EnrollmentSerializer,
-                           MaterialSerializer, AdminMaterialSerializer, MyLessonSerializer)
+                           MaterialSerializer, AdminMaterialSerializer, MyLessonSerializer,
+                           InstructorSerializer)
 
 
 def _check_enrollment_cap(course):
@@ -32,18 +33,33 @@ class CourseListView(generics.ListAPIView):
     serializer_class   = CourseListSerializer
     permission_classes = [AllowAny]
     search_fields      = ['title', 'title_en', 'description']
-    filterset_fields   = ['category', 'category__student_type', 'category__academic_year']
+    filterset_fields   = ['category', 'category__student_type', 'category__academic_year', 'instructor']
     ordering_fields    = ['price', 'created_at']
 
     def get_queryset(self):
         qs = Course.objects.filter(is_published=True).select_related('instructor', 'category')
         user = self.request.user
-        if user.is_authenticated and user.student_type and user.academic_year:
-            qs = qs.filter(
-                category__student_type=user.student_type,
-                category__academic_year=user.academic_year,
-            )
+        # Scope to the student's own track (center/online) by default — but NOT their
+        # academic year, so the grade tabs on the courses page can actually browse other
+        # years (revision courses, etc.) instead of always collapsing to an empty list.
+        if user.is_authenticated and user.student_type:
+            qs = qs.filter(category__student_type=user.student_type)
         return qs
+
+
+class InstructorListView(generics.ListAPIView):
+    """Public: every instructor with at least one published course, for the courses
+    page's teacher-filter tabs (the platform now hosts lessons from multiple teachers,
+    not just one)."""
+    serializer_class   = InstructorSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return (
+            UserModel.objects
+            .filter(role='instructor', courses__is_published=True)
+            .distinct()
+        )
 
 
 class CourseDetailView(generics.RetrieveAPIView):

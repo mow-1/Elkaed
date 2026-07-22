@@ -23,7 +23,7 @@ export default function LoginPage() {
       const data = await res.json()
       if (res.ok) {
         login({ access: data.access, refresh: data.refresh }, data.user)
-        navigate(data.user.must_change_password ? '/portal' : '/dashboard')
+        navigate('/portal')
       } else {
         setError(data.detail ?? 'رقم الهاتف أو كلمة المرور غير صحيحة')
       }
@@ -57,7 +57,7 @@ export default function LoginPage() {
       const data = await res.json()
       if (res.ok) {
         login({ access: data.access, refresh: data.refresh }, data.user)
-        navigate('/dashboard')
+        navigate('/portal')
       } else {
         setError(data.detail ?? 'رمز خاطئ، حاول مرة أخرى')
       }

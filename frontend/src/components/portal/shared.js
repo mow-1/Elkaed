@@ -1,5 +1,5 @@
-// Shared data-fetching helper + loading/error micro-components, copied verbatim
-// from DashboardPage.jsx's pattern and reused across all portal tabs.
+// Shared data-fetching helper + loading/error micro-components, reused
+// across all portal tabs.
 export const blank = () => ({ data: null, loading: true, error: false })
 
 export async function load(apiFn, setter) {

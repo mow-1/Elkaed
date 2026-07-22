@@ -68,7 +68,7 @@ export default function RegisterPage() {
       const data = await res.json()
       if (res.ok) {
         login({ access: data.access, refresh: data.refresh }, data.user)
-        navigate('/dashboard')
+        navigate('/portal')
       } else {
         setError(data.detail ?? 'حدث خطأ، حاول مرة أخرى')
       }

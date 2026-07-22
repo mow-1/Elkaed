@@ -21,7 +21,7 @@ class TopicInline(admin.StackedInline):
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
     list_display   = ('title', 'instructor', 'category', 'price', 'enrollment_count', 'is_published')
-    list_filter    = ('is_published', 'category__academic_year', 'category__student_type')
+    list_filter    = ('is_published', 'category__academic_year', 'category__student_type', 'instructor')
     search_fields  = ('title', 'instructor__phone')
     list_editable  = ('is_published',)
     inlines        = [TopicInline]

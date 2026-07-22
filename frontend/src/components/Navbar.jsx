@@ -46,16 +46,19 @@ export default function Navbar() {
         </a>
 
         <nav className={`${styles.nav} ${open ? styles.open : ''}`}>
-          <a href="#hero" className={`${styles.link} ${styles.active}`}>الرئيسية</a>
-          <Link to="/courses" className={styles.link}>الكورسات</Link>
-          <a href="#features" className={styles.link}>ليه القائد؟</a>
-          <a href="#testimonials" className={styles.link}>آراء الطلاب</a>
+          {!user && (
+            <>
+              <a href="#hero" className={`${styles.link} ${styles.active}`}>الرئيسية</a>
+              <Link to="/courses" className={styles.link}>الكورسات</Link>
+              <a href="#features" className={styles.link}>ليه القائد؟</a>
+              <a href="#testimonials" className={styles.link}>آراء الطلاب</a>
+            </>
+          )}
           <div className={styles.mobileAuth}>
             {user ? (
               <>
                 <WalletAndCart />
                 <Link to="/portal" className={styles.link}>بوابة الطالب</Link>
-                <Link to="/dashboard" className={styles.link}>لوحة التحكم</Link>
                 {['admin', 'staff'].includes(user.role) && (
                   <Link to="/admin-panel" className={styles.link}>لوحة الإدارة</Link>
                 )}
@@ -79,7 +82,6 @@ export default function Navbar() {
               </div>
               <WalletAndCart />
               <Link to="/portal" className={styles.link}>بوابة الطالب</Link>
-              <Link to="/dashboard" className={styles.link}>لوحة التحكم</Link>
               {['admin', 'staff'].includes(user.role) && (
                 <Link to="/admin-panel" className={styles.link}>لوحة الإدارة</Link>
               )}

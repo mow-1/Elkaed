@@ -8,6 +8,11 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'slug', 'student_type', 'academic_year')
 
 
+class InstructorSerializer(serializers.Serializer):
+    id        = serializers.IntegerField()
+    full_name = serializers.CharField()
+
+
 class LessonSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Lesson
