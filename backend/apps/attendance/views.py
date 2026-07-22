@@ -412,7 +412,7 @@ class ScanAttendanceView(APIView):
         })
 
 
-PHYSICAL_REASONS = ('attendance_present', 'attendance_absent', 'package_credit')
+PHYSICAL_REASONS = ('attendance_present', 'attendance_absent', 'package_credit', 'package_purchase')
 ONLINE_REASONS = ('purchase', 'bundle', 'coupon', 'kanga_topup', 'csv_import', 'admin_credit', 'admin_debit')
 
 
