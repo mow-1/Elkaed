@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.notifications.tasks import send_whatsapp_task
+from apps.attendance.models import CenterGroup
 from .models import User, ShippingAddress, ImportBatch
 from .permissions import is_admin, is_ops
 from .serializers import (SendOTPSerializer, VerifyOTPSerializer, UserProfileSerializer,
@@ -247,6 +248,10 @@ class CustomerListView(APIView):
         if stype:
             qs = qs.filter(student_type=stype)
 
+        group = request.query_params.get('group', '').strip()
+        if group:
+            qs = qs.filter(group_id=group)
+
         page     = max(1, int(request.query_params.get('page', 1)))
         per_page = 20
         total    = qs.count()
@@ -263,6 +268,19 @@ class CustomerDetailView(APIView):
         if request.user.role not in ('admin', 'staff'):
             return Response({'detail': 'غير مصرح.'}, status=status.HTTP_403_FORBIDDEN)
         user = get_object_or_404(User, pk=pk)
+        return Response(CustomerDetailSerializer(user).data)
+
+    def patch(self, request, pk):
+        if request.user.role not in ('admin', 'staff'):
+            return Response({'detail': 'غير مصرح.'}, status=status.HTTP_403_FORBIDDEN)
+        user = get_object_or_404(User, pk=pk)
+        if 'group' in request.data:
+            group_id = request.data['group']
+            if group_id in (None, ''):
+                user.group = None
+            else:
+                user.group = get_object_or_404(CenterGroup, pk=group_id)
+            user.save(update_fields=['group'])
         return Response(CustomerDetailSerializer(user).data)
 
 

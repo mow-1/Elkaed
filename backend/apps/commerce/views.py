@@ -14,9 +14,10 @@ from apps.attendance.services import effective_price as apply_discount
 from apps.courses.models import Course, Enrollment
 from apps.users.models import User
 from .models import Coupon, CouponRedemption, Order, OrderItem, WalletTransaction
-from .serializers import CouponRedeemSerializer, WalletTransactionSerializer, KangaPayInitSerializer
+from .serializers import (CouponRedeemSerializer, WalletTransactionSerializer, KangaPayInitSerializer,
+                           WalletTopUpSerializer)
 from apps.notifications.tasks import send_whatsapp_task
-from .services import verify_kanga_hmac, wallet_credit, wallet_debit, create_kanga_payment, InsufficientBalance
+from .services import verify_kanga_signature, wallet_credit, wallet_debit, create_kanga_payment, InsufficientBalance
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,24 @@ class WalletHistoryView(generics.ListAPIView):
 
     def get_queryset(self):
         return WalletTransaction.objects.filter(user=self.request.user).order_by('-created_at')
+
+
+class WalletTopUpView(APIView):
+    """Student picks any amount, pays via Kanga Pay; the webhook credits the wallet
+    (see KangaPayWebhookView — an Order with no items is a top-up, not a purchase)."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        ser = WalletTopUpSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        amount = ser.validated_data['amount']
+
+        order = Order.objects.create(
+            user=request.user, status='pending', payment_method='kanga_pay', total_price=amount,
+        )
+        return_url = request.build_absolute_uri('/account')
+        payment_url = create_kanga_payment(order, 'شحن المحفظة', return_url)
+        return Response({'payment_url': payment_url}, status=status.HTTP_201_CREATED)
 
 
 class CouponRedeemView(APIView):
@@ -80,24 +99,29 @@ class CouponRedeemView(APIView):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class KangaPayWebhookView(APIView):
-    permission_classes = []  # authenticated via HMAC, not JWT
+    """Matches the real Kanga Pay contract (ported from the WooCommerce plugin's
+    handle_webhook): a `Signature` header (not HMAC of the body — see
+    services.verify_kanga_signature), and an `invoice_payload` that is itself a
+    JSON-encoded string containing our `order_id`."""
+    permission_classes = []  # authenticated via Signature header, not JWT
 
     def post(self, request):
-        signature = request.headers.get('X-Kanga-Signature', '')
-        if not verify_kanga_hmac(request.body, signature):
-            logger.warning('Kanga Pay webhook: invalid HMAC signature')
+        signature = request.headers.get('Signature', '')
+        if not verify_kanga_signature(signature):
+            logger.warning('Kanga Pay webhook: invalid signature')
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         try:
             payload = json.loads(request.body)
+            invoice_payload = json.loads(payload.get('invoice_payload') or '{}')
         except json.JSONDecodeError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        payment_status = payload.get('status')
-        order_id       = payload.get('order_id')
+        event_type     = payload.get('event')
+        order_id       = invoice_payload.get('order_id')
         transaction_id = payload.get('payment_id', '')
 
-        if payment_status != 'completed' or not order_id:
+        if event_type not in ('redirect.success', 'invoice.success') or not order_id:
             return Response({'detail': 'ignored'})
 
         try:
@@ -105,25 +129,39 @@ class KangaPayWebhookView(APIView):
         except Order.DoesNotExist:
             return Response({'detail': 'ignored'})
 
+        is_topup = not order.items.exists()
+
         with transaction.atomic():
             order.status         = 'completed'
             order.transaction_id = transaction_id
             order.save(update_fields=['status', 'transaction_id'])
 
-            for item in order.items.select_related('course').all():
-                _, created = Enrollment.objects.get_or_create(
-                    student=order.user,
-                    course=item.course,
-                    defaults={'payment_method': 'kanga_pay', 'order': order},
+            if is_topup:
+                wallet_credit(
+                    order.user, order.total_price, reference=f'kanga_topup_{order.pk}',
+                    note='شحن المحفظة عبر كانجا باي', reason_code='kanga_topup', related_object=order,
                 )
-                if created:
-                    from apps.courses.views import _check_enrollment_cap
-                    _check_enrollment_cap(item.course)
+            else:
+                for item in order.items.select_related('course').all():
+                    _, created = Enrollment.objects.get_or_create(
+                        student=order.user,
+                        course=item.course,
+                        defaults={'payment_method': 'kanga_pay', 'order': order},
+                    )
+                    if created:
+                        from apps.courses.views import _check_enrollment_cap
+                        _check_enrollment_cap(item.course)
 
-        send_whatsapp_task.delay(
-            order.user.phone,
-            f'تم تسجيلك في المنصة! تم دفع طلبك #{order.pk} بنجاح.',
-        )
+        if is_topup:
+            send_whatsapp_task.delay(
+                order.user.phone,
+                f'تم شحن محفظتك بمبلغ {order.total_price} جنيه بنجاح!',
+            )
+        else:
+            send_whatsapp_task.delay(
+                order.user.phone,
+                f'تم تسجيلك في المنصة! تم دفع طلبك #{order.pk} بنجاح.',
+            )
         return Response({'detail': 'ok'})
 
 

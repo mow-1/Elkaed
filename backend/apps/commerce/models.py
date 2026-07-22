@@ -93,6 +93,7 @@ class WalletTransaction(models.Model):
         ('attendance_absent', 'غياب عن حصة'),
         ('discount_adjustment', 'تعديل خصم'),
         ('package_credit', 'إيداع باقة'),
+        ('package_purchase', 'شراء باقة حصص'),
         ('admin_credit', 'إيداع إداري'),
         ('admin_debit', 'خصم إداري'),
         ('coupon', 'كوبون'),

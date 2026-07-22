@@ -9,8 +9,16 @@ export const getDiscounts   = (params = {}) => apiFetch(`/api/attendance/discoun
 export const createDiscount = (data) => apiFetch('/api/attendance/discounts/', { method: 'POST', body: JSON.stringify(data) })
 export const updateDiscount = (id, data) => apiFetch(`/api/attendance/discounts/${id}/`, { method: 'PATCH', body: JSON.stringify(data) })
 
+// Lesson packages
+export const getPackages   = () => apiFetch('/api/attendance/packages/')
+export const createPackage = (data) => apiFetch('/api/attendance/packages/', { method: 'POST', body: JSON.stringify(data) })
+export const updatePackage = (id, data) => apiFetch(`/api/attendance/packages/${id}/`, { method: 'PATCH', body: JSON.stringify(data) })
+export const applyPackage  = (id, studentId) => apiFetch(`/api/attendance/packages/${id}/apply/`, { method: 'POST', body: JSON.stringify({ student_id: studentId }) })
+
 // Groups & sessions
 export const getGroups         = () => apiFetch('/api/attendance/groups/')
+export const createGroup       = (data) => apiFetch('/api/attendance/groups/', { method: 'POST', body: JSON.stringify(data) })
+export const updateGroup       = (id, data) => apiFetch(`/api/attendance/groups/${id}/`, { method: 'PATCH', body: JSON.stringify(data) })
 export const getSessions       = () => apiFetch('/api/attendance/sessions/')
 export const createSession     = (data) => apiFetch('/api/attendance/sessions/', { method: 'POST', body: JSON.stringify(data) })
 export const getChecklist      = (sessionId) => apiFetch(`/api/attendance/sessions/${sessionId}/checklist/`)

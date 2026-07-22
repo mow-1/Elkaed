@@ -14,6 +14,8 @@ import PricingSettingsTab from '../components/admin/PricingSettingsTab'
 import DiscountsTab from '../components/admin/DiscountsTab'
 import CsvImportTab from '../components/admin/CsvImportTab'
 import AttendanceTab from '../components/admin/AttendanceTab'
+import GroupsTab from '../components/admin/GroupsTab'
+import PackagesTab from '../components/admin/PackagesTab'
 import ScanTab from '../components/admin/ScanTab'
 import ArrearsTab from '../components/admin/ArrearsTab'
 import RevenueReportTab from '../components/admin/RevenueReportTab'
@@ -32,6 +34,8 @@ const ADMIN_TABS = [
   { id: 'pricing', label: 'إعدادات التسعير' },
   { id: 'discounts', label: 'خصومات الطلاب' },
   { id: 'import', label: 'استيراد طلاب السنتر' },
+  { id: 'groups', label: 'مجاميع السنتر' },
+  { id: 'packages', label: 'باقات الحصص' },
   { id: 'attendance', label: 'الحضور' },
   { id: 'scan', label: 'مسح الحضور' },
   { id: 'arrears', label: 'متأخرات' },
@@ -90,6 +94,8 @@ export default function AdminPanelPage() {
         {tab === 'pricing'    && <PricingSettingsTab />}
         {tab === 'discounts'  && <DiscountsTab />}
         {tab === 'import'     && <CsvImportTab />}
+        {tab === 'groups'     && <GroupsTab />}
+        {tab === 'packages'   && <PackagesTab />}
         {tab === 'attendance' && <AttendanceTab />}
         {tab === 'scan'       && <ScanTab />}
         {tab === 'arrears'    && <ArrearsTab />}

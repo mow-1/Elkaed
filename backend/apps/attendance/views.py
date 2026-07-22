@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.db.models import Case, CharField, Q, Sum, Value, When
+from django.db.models import Case, CharField, F, Q, Sum, Value, When
 from django.db.models.functions import Coalesce, TruncDay, TruncMonth, TruncWeek
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -12,12 +12,12 @@ from rest_framework.views import APIView
 from apps.audit.services import log_action
 from apps.commerce.models import WalletTransaction
 from apps.commerce.serializers import WalletTransactionSerializer
-from apps.commerce.services import InsufficientBalance, wallet_credit
+from apps.commerce.services import InsufficientBalance, wallet_credit, wallet_debit
 from apps.courses.models import LessonAccessGrant
 from apps.users.models import User
 from apps.users.permissions import is_admin, is_ops
-from .models import AttendanceRecord, CenterGroup, PhysicalSession, PricingSettings, StudentDiscount
-from .serializers import (AttendanceRecordSerializer, CenterGroupSerializer,
+from .models import AttendanceRecord, CenterGroup, LessonPackage, PhysicalSession, PricingSettings, StudentDiscount
+from .serializers import (AttendanceRecordSerializer, CenterGroupSerializer, LessonPackageSerializer,
                            PhysicalSessionSerializer, PricingSettingsSerializer,
                            StudentDiscountSerializer)
 from .services import mark, resend_whatsapp, revoke_access, set_attendance_status
@@ -130,6 +130,66 @@ class CenterGroupDetailView(APIView):
         ser.is_valid(raise_exception=True)
         ser.save()
         return Response(ser.data)
+
+
+class LessonPackageListView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = LessonPackageSerializer
+    queryset = LessonPackage.objects.filter(is_active=True).order_by('price')
+
+    def list(self, request, *args, **kwargs):
+        if not is_admin(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        return super().list(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        if not is_admin(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
+
+
+class LessonPackageDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        if not is_admin(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        package = get_object_or_404(LessonPackage, pk=pk)
+        ser = LessonPackageSerializer(package, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)
+
+
+class ApplyLessonPackageView(APIView):
+    """Admin sells a lesson package to a student: deducts the package price from
+    their wallet and credits prepaid_lessons_remaining, which attendance marking
+    consumes before falling back to a per-lesson wallet debit."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        if not is_admin(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        package = get_object_or_404(LessonPackage, pk=pk, is_active=True)
+        student = get_object_or_404(User, pk=request.data.get('student_id'), role='student')
+
+        try:
+            wallet_debit(
+                student, package.price, reason_code='package_purchase',
+                related_object=package, created_by=request.user,
+                note=f'شراء باقة: {package.name}',
+            )
+        except InsufficientBalance:
+            return Response({'detail': 'رصيد المحفظة غير كافٍ.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        User.objects.filter(pk=student.pk).update(
+            prepaid_lessons_remaining=F('prepaid_lessons_remaining') + package.lesson_count
+        )
+        student.refresh_from_db(fields=['wallet_balance', 'prepaid_lessons_remaining'])
+        return Response({
+            'wallet_balance': student.wallet_balance,
+            'prepaid_lessons_remaining': student.prepaid_lessons_remaining,
+        })
 
 
 class PhysicalSessionListView(generics.ListCreateAPIView):

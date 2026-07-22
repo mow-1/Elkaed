@@ -2,12 +2,31 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Q
+from django.db import transaction
+from django.db.models import F, Q
 from django.utils.timezone import now as tz_now
 
 from apps.audit.services import log_action
 from apps.commerce.services import InsufficientBalance, wallet_credit, wallet_debit
+from apps.users.models import User
 from .models import AttendanceRecord, PricingSettings, StudentDiscount
+
+
+def _consume_prepaid_lesson(student) -> bool:
+    """Atomically consumes one prepaid lesson credit if the student has any.
+    Returns True if a credit was consumed (caller should skip the wallet debit)."""
+    with transaction.atomic():
+        updated = (
+            User.objects.filter(pk=student.pk, prepaid_lessons_remaining__gt=0)
+            .update(prepaid_lessons_remaining=F('prepaid_lessons_remaining') - 1)
+        )
+    return updated == 1
+
+
+def _restore_prepaid_lesson(student) -> None:
+    User.objects.filter(pk=student.pk).update(
+        prepaid_lessons_remaining=F('prepaid_lessons_remaining') + 1
+    )
 
 
 def effective_price(user, base_price, scope: str):
@@ -50,32 +69,40 @@ def _apply_status(record, status_value, actor):
     from apps.notifications.tasks import send_whatsapp_task
 
     if status_value == 'present':
-        price, discount = effective_price(record.student, record.session.lesson_price, 'physical_only')
-        try:
-            wallet_debit(
-                record.student, price, reason_code='attendance_present',
-                related_object=record, created_by=actor,
-                note=f'حضور: {record.session.title_ar}',
-                original_amount=record.session.lesson_price if discount else None,
-                discount=discount,
-            )
+        if _consume_prepaid_lesson(record.student):
             record.deducted = True
-        except InsufficientBalance:
-            record.deducted = False
+            record.paid_via_package = True
+        else:
+            price, discount = effective_price(record.student, record.session.lesson_price, 'physical_only')
+            try:
+                wallet_debit(
+                    record.student, price, reason_code='attendance_present',
+                    related_object=record, created_by=actor,
+                    note=f'حضور: {record.session.title_ar}',
+                    original_amount=record.session.lesson_price if discount else None,
+                    discount=discount,
+                )
+                record.deducted = True
+            except InsufficientBalance:
+                record.deducted = False
 
     elif status_value == 'absent':
-        price, discount = effective_price(record.student, record.session.lesson_price, 'physical_only')
-        try:
-            wallet_debit(
-                record.student, price, reason_code='attendance_absent',
-                related_object=record, created_by=actor,
-                note=f'غياب — إرسال الدرس أونلاين: {record.session.title_ar}',
-                original_amount=record.session.lesson_price if discount else None,
-                discount=discount,
-            )
+        if _consume_prepaid_lesson(record.student):
             record.deducted = True
-        except InsufficientBalance:
-            record.deducted = False
+            record.paid_via_package = True
+        else:
+            price, discount = effective_price(record.student, record.session.lesson_price, 'physical_only')
+            try:
+                wallet_debit(
+                    record.student, price, reason_code='attendance_absent',
+                    related_object=record, created_by=actor,
+                    note=f'غياب — إرسال الدرس أونلاين: {record.session.title_ar}',
+                    original_amount=record.session.lesson_price if discount else None,
+                    discount=discount,
+                )
+                record.deducted = True
+            except InsufficientBalance:
+                record.deducted = False
 
         if record.session.linked_lesson:
             grant, created = LessonAccessGrant.objects.get_or_create(
@@ -138,7 +165,11 @@ def set_attendance_status(record, new_status, actor, notes='') -> AttendanceReco
 
     old_status = record.status
 
-    if record.deducted:
+    if record.deducted and record.paid_via_package:
+        _restore_prepaid_lesson(record.student)
+        record.paid_via_package = False
+        record.deducted = False
+    elif record.deducted:
         content_type = ContentType.objects.get_for_model(AttendanceRecord)
         original_txn = (
             record.student.wallet_transactions
@@ -153,6 +184,7 @@ def set_attendance_status(record, new_status, actor, notes='') -> AttendanceReco
                 note=f'عكس: {record.session.title_ar}', reason_code='reversal',
                 related_object=record, created_by=actor,
             )
+        record.deducted = False
 
     if old_status == 'absent':
         LessonAccessGrant.objects.filter(

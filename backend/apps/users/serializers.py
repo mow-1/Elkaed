@@ -90,11 +90,13 @@ class ShippingAddressSerializer(serializers.ModelSerializer):
 class CustomerListSerializer(serializers.ModelSerializer):
     enrollment_count = serializers.IntegerField(read_only=True)
     full_name        = serializers.SerializerMethodField()
+    group_name       = serializers.CharField(source='group.name_ar', read_only=True, default=None)
 
     class Meta:
         model  = User
         fields = ('id', 'phone', 'first_name', 'last_name', 'full_name',
-                  'academic_year', 'student_type', 'date_joined', 'is_active', 'enrollment_count')
+                  'academic_year', 'student_type', 'date_joined', 'is_active', 'enrollment_count',
+                  'group', 'group_name')
 
     def get_full_name(self, obj):
         return f'{obj.first_name} {obj.last_name}'.strip()
@@ -104,12 +106,14 @@ class CustomerDetailSerializer(serializers.ModelSerializer):
     enrollments = serializers.SerializerMethodField()
     orders      = serializers.SerializerMethodField()
     full_name   = serializers.SerializerMethodField()
+    group_name  = serializers.CharField(source='group.name_ar', read_only=True, default=None)
 
     class Meta:
         model  = User
         fields = ('id', 'phone', 'first_name', 'last_name', 'full_name', 'guardian_phone',
-                  'email', 'academic_year', 'student_type', 'wallet_balance', 'role',
-                  'date_joined', 'is_active', 'enrollments', 'orders')
+                  'email', 'academic_year', 'student_type', 'wallet_balance',
+                  'prepaid_lessons_remaining', 'role',
+                  'date_joined', 'is_active', 'enrollments', 'orders', 'group', 'group_name')
 
     def get_full_name(self, obj):
         return f'{obj.first_name} {obj.last_name}'.strip()

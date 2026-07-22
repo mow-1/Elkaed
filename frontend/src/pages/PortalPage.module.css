@@ -340,6 +340,16 @@
   color: var(--primary);
   margin-bottom: 14px;
 }
+.rechargeRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.rechargeRow .input {
+  width: 160px;
+}
 .qrImage {
   width: 180px;
   height: 180px;
