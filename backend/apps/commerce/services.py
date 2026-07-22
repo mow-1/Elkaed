@@ -1,6 +1,8 @@
 import hashlib
 import hmac
+import json
 import logging
+from datetime import datetime, timezone
 
 import requests
 from django.conf import settings
@@ -135,43 +137,59 @@ def wallet_debit(user: User, amount, reason_code, related_object=None, created_b
     return locked_user.wallet_balance
 
 
-def verify_kanga_hmac(payload: bytes, signature: str) -> bool:
-    expected = hmac.new(
-        settings.KANGA_PAY_WEBHOOK_SECRET.encode(),
-        payload,
-        hashlib.sha256,
-    ).hexdigest()
-    return hmac.compare_digest(expected, signature)
+def _kanga_signature(date_str: str = None) -> str:
+    """Matches the real Kanga Pay API contract (ported from the WooCommerce plugin,
+    class-kanga-pay-gateway.php): sha256(public_key + sha256(secret_key) + YYYYMMDD),
+    not HMAC — there is no separate webhook secret in the real API."""
+    date_str = date_str or datetime.now(timezone.utc).strftime('%Y%m%d')
+    secret_hash = hashlib.sha256(settings.KANGA_PAY_SECRET_KEY.encode()).hexdigest()
+    return hashlib.sha256(f'{settings.KANGA_PAY_PUBLIC_KEY}{secret_hash}{date_str}'.encode()).hexdigest()
+
+
+def verify_kanga_signature(signature: str) -> bool:
+    return hmac.compare_digest(_kanga_signature(), signature)
 
 
 def create_kanga_payment(order: Order, description: str, return_url: str) -> str:
-    """
-    Initiate a Kanga Pay payment and return the redirect URL.
-    Kanga Pay API docs: https://kanga-pay.com/docs (retrieve keys from WP options).
-    `description` is a plain label (a course title, or "N courses" for a cart checkout).
-    """
+    """Initiate a Kanga Pay invoice (POST /v1/invoices/create) and return the redirect
+    URL the customer's browser should go to. `description` is used as the single line
+    item's name when the order has no OrderItems (e.g. a wallet top-up)."""
+    items = [
+        {'name': item.course.title, 'qty': 1, 'unit_price': float(item.price)}
+        for item in order.items.select_related('course').all()
+    ] or [{'name': description, 'qty': 1, 'unit_price': float(order.total_price)}]
+
+    body = {
+        'total_amount': float(order.total_price),
+        'customer': {
+            'name':  order.user.full_name,
+            'email': order.user.email or '',
+            'phone': order.user.phone,
+        },
+        'items': items,
+        'currency': 'EGP',
+        'webhook_override': [
+            {'event_type': 'redirect.success', 'url': return_url},
+            {'event_type': 'invoice.success', 'url': f'{settings.SITE_URL}/api/commerce/kanga-pay/webhook/'},
+        ],
+        'payload': json.dumps({'order_id': order.pk}),
+    }
+
     try:
         resp = requests.post(
-            'https://api.kanga-pay.com/v1/payments',
-            json={
-                'amount':      str(order.total_price),
-                'currency':    'EGP',
-                'order_id':    str(order.pk),
-                'description': description,
-                'return_url':  return_url,
-                'webhook_url': f'{settings.SITE_URL}/api/commerce/kanga-pay/webhook/',
-            },
+            'https://api.kanga-pay.com/v1/invoices/create',
+            json=body,
             headers={
-                'Authorization': f'Bearer {settings.KANGA_PAY_SECRET_KEY}',
-                'X-Public-Key':  settings.KANGA_PAY_PUBLIC_KEY,
+                'Authorization': f'Bearer {settings.KANGA_PAY_PUBLIC_KEY}',
+                'Signature':     _kanga_signature(),
             },
             timeout=15,
         )
         resp.raise_for_status()
         data = resp.json()
-        order.transaction_id = data.get('payment_id', '')
-        order.save(update_fields=['transaction_id'])
-        return data['payment_url']
+        if data.get('status') != 'success' or not data.get('data', {}).get('invoice_link'):
+            raise requests.RequestException(data.get('message', 'Kanga Pay: unexpected response'))
+        return data['data']['invoice_link']
     except requests.RequestException as exc:
         logger.error('Kanga Pay init failed for order %s: %s', order.pk, exc)
         raise

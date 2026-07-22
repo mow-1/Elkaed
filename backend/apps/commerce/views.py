@@ -17,7 +17,7 @@ from .models import Coupon, CouponRedemption, Order, OrderItem, WalletTransactio
 from .serializers import (CouponRedeemSerializer, WalletTransactionSerializer, KangaPayInitSerializer,
                            WalletTopUpSerializer)
 from apps.notifications.tasks import send_whatsapp_task
-from .services import verify_kanga_hmac, wallet_credit, wallet_debit, create_kanga_payment, InsufficientBalance
+from .services import verify_kanga_signature, wallet_credit, wallet_debit, create_kanga_payment, InsufficientBalance
 
 logger = logging.getLogger(__name__)
 
@@ -99,24 +99,29 @@ class CouponRedeemView(APIView):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class KangaPayWebhookView(APIView):
-    permission_classes = []  # authenticated via HMAC, not JWT
+    """Matches the real Kanga Pay contract (ported from the WooCommerce plugin's
+    handle_webhook): a `Signature` header (not HMAC of the body — see
+    services.verify_kanga_signature), and an `invoice_payload` that is itself a
+    JSON-encoded string containing our `order_id`."""
+    permission_classes = []  # authenticated via Signature header, not JWT
 
     def post(self, request):
-        signature = request.headers.get('X-Kanga-Signature', '')
-        if not verify_kanga_hmac(request.body, signature):
-            logger.warning('Kanga Pay webhook: invalid HMAC signature')
+        signature = request.headers.get('Signature', '')
+        if not verify_kanga_signature(signature):
+            logger.warning('Kanga Pay webhook: invalid signature')
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         try:
             payload = json.loads(request.body)
+            invoice_payload = json.loads(payload.get('invoice_payload') or '{}')
         except json.JSONDecodeError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        payment_status = payload.get('status')
-        order_id       = payload.get('order_id')
+        event_type     = payload.get('event')
+        order_id       = invoice_payload.get('order_id')
         transaction_id = payload.get('payment_id', '')
 
-        if payment_status != 'completed' or not order_id:
+        if event_type not in ('redirect.success', 'invoice.success') or not order_id:
             return Response({'detail': 'ignored'})
 
         try:

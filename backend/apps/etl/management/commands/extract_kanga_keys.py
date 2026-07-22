@@ -4,8 +4,11 @@ Extract Kanga Pay API keys from the WordPress options table.
 Run:
     python manage.py extract_kanga_keys
 
-Prints the public key, secret key, and webhook secret so you can paste
-them into your .env file. Run this BEFORE shutting down WordPress.
+Prints the public key and secret key so you can paste them into your
+.env file. Run this BEFORE shutting down WordPress. There is no
+separate webhook secret in the real Kanga Pay API - webhook requests
+are verified with the same public/secret key pair (see
+apps.commerce.services.verify_kanga_signature).
 """
 import phpserialize
 import pymysql
@@ -56,7 +59,6 @@ class Command(BaseCommand):
         # Try the most common ones.
         public_key  = data.get('public_key') or data.get('api_key') or data.get('publishable_key', '')
         secret_key  = data.get('secret_key') or data.get('private_key') or data.get('api_secret', '')
-        webhook_key = data.get('webhook_secret') or data.get('webhook_key', '')
 
         self.stdout.write('\n' + '=' * 50)
         self.stdout.write(self.style.SUCCESS('Kanga Pay settings found:'))
@@ -70,7 +72,6 @@ class Command(BaseCommand):
         self.stdout.write('-' * 50)
         self.stdout.write(f'KANGA_PAY_PUBLIC_KEY={public_key}')
         self.stdout.write(f'KANGA_PAY_SECRET_KEY={secret_key}')
-        self.stdout.write(f'KANGA_PAY_WEBHOOK_SECRET={webhook_key}')
         self.stdout.write(
             '\nIf keys are blank above, check the raw output and find the correct field names.'
         )

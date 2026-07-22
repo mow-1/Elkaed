@@ -120,7 +120,6 @@ SITE_URL = config('SITE_URL', default='http://localhost:8000')
 WAMA_API_KEY = config('WAMA_API_KEY', default='')
 KANGA_PAY_PUBLIC_KEY = config('KANGA_PAY_PUBLIC_KEY', default='')
 KANGA_PAY_SECRET_KEY = config('KANGA_PAY_SECRET_KEY', default='')
-KANGA_PAY_WEBHOOK_SECRET = config('KANGA_PAY_WEBHOOK_SECRET', default='')
 
 AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default='')
 AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='')
