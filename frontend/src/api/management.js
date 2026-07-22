@@ -3,6 +3,7 @@ import { apiFetch } from './client'
 // Customers
 export const getCustomers     = (params = {}) => apiFetch(`/api/auth/customers/?${new URLSearchParams(params)}`)
 export const getCustomerDetail = (id) => apiFetch(`/api/auth/customers/${id}/`)
+export const setCustomerGroup  = (id, groupId) => apiFetch(`/api/auth/customers/${id}/`, { method: 'PATCH', body: JSON.stringify({ group: groupId }) })
 
 // Analytics
 export const getAdminAnalytics = () => apiFetch('/api/auth/analytics/')

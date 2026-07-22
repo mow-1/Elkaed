@@ -1,3 +1,4 @@
+from decimal import Decimal
 from rest_framework import serializers
 from .models import Order, OrderItem, WalletTransaction
 
@@ -40,6 +41,10 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class KangaPayInitSerializer(serializers.Serializer):
     course_id = serializers.IntegerField()
+
+
+class WalletTopUpSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('1'))
 
 
 from .models import FlashSale, Bundle

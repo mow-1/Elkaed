@@ -11,6 +11,8 @@ export const updateDiscount = (id, data) => apiFetch(`/api/attendance/discounts/
 
 // Groups & sessions
 export const getGroups         = () => apiFetch('/api/attendance/groups/')
+export const createGroup       = (data) => apiFetch('/api/attendance/groups/', { method: 'POST', body: JSON.stringify(data) })
+export const updateGroup       = (id, data) => apiFetch(`/api/attendance/groups/${id}/`, { method: 'PATCH', body: JSON.stringify(data) })
 export const getSessions       = () => apiFetch('/api/attendance/sessions/')
 export const createSession     = (data) => apiFetch('/api/attendance/sessions/', { method: 'POST', body: JSON.stringify(data) })
 export const getChecklist      = (sessionId) => apiFetch(`/api/attendance/sessions/${sessionId}/checklist/`)

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { getProfile, updateProfile, changePassword, getMyQrCode, getMyIdCardPdf } from '../../api/auth'
-import { getWallet } from '../../api/commerce'
+import { getWallet, topUpWallet } from '../../api/commerce'
 import { getWalletHistory } from '../../api/portal'
 import { useAuth } from '../../context/AuthContext'
 import { blank, load } from './shared'
@@ -117,6 +117,42 @@ function ChangePasswordForm({ forced }) {
   )
 }
 
+function RechargeForm() {
+  const [amount, setAmount] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setBusy(true)
+    setMsg('')
+    try {
+      const r = await topUpWallet(amount)
+      const body = await r.json().catch(() => ({}))
+      if (!r.ok || !body.payment_url) { setMsg(body.detail || 'حدث خطأ'); return }
+      window.location.href = body.payment_url
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form className={styles.rechargeRow} onSubmit={handleSubmit}>
+      <input
+        className={styles.input}
+        type="number" min="1" step="0.01" required dir="ltr"
+        placeholder="المبلغ بالجنيه"
+        value={amount}
+        onChange={e => setAmount(e.target.value)}
+      />
+      <button className={styles.openBtn} disabled={busy || !amount} type="submit">
+        {busy ? 'جارٍ التحويل...' : 'شحن المحفظة'}
+      </button>
+      {msg && <p className={styles.formMsg}>{msg}</p>}
+    </form>
+  )
+}
+
 function WalletHistoryTable() {
   const [wallet, setWallet] = useState(blank())
   const [history, setHistory] = useState(null)
@@ -139,6 +175,7 @@ function WalletHistoryTable() {
       <p className={styles.walletBalanceInline}>
         الرصيد الحالي: {wallet.loading ? '...' : `${wallet.data?.balance ?? '0.00'} ج.م`}
       </p>
+      <RechargeForm />
 
       {loading ? <p className={styles.loading}>جارٍ التحميل...</p> : history && (
         <>
