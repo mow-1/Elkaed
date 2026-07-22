@@ -34,6 +34,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     student_type   = models.CharField(choices=STUDENT_TYPE_CHOICES, max_length=10, blank=True)
     academic_year  = models.CharField(choices=ACADEMIC_YEAR_CHOICES, max_length=5, blank=True)
     wallet_balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    prepaid_lessons_remaining = models.PositiveIntegerField(default=0)
     role           = models.CharField(choices=ROLE_CHOICES, max_length=15, default='student')
     is_active      = models.BooleanField(default=True)
     is_staff       = models.BooleanField(default=False)

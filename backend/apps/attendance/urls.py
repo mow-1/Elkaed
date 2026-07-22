@@ -4,12 +4,17 @@ from .views import (PricingSettingsView, AdminDiscountListView, AdminDiscountDet
                      PhysicalSessionDetailView, SessionChecklistView, MarkAttendanceView,
                      MarkAllPresentView, ApplyPackageCreditView, StudentAttendanceHistoryView,
                      ArrearsView, RevokeAccessView, ResendWhatsappView, GroupIdCardsPdfView,
-                     ScanAttendanceView, SessionSearchView, RevenueReportView)
+                     ScanAttendanceView, SessionSearchView, RevenueReportView,
+                     LessonPackageListView, LessonPackageDetailView, ApplyLessonPackageView)
 
 urlpatterns = [
     path('pricing-settings/', PricingSettingsView.as_view(), name='pricing_settings'),
     path('discounts/', AdminDiscountListView.as_view(), name='discount_list'),
     path('discounts/<int:pk>/', AdminDiscountDetailView.as_view(), name='discount_detail'),
+
+    path('packages/', LessonPackageListView.as_view(), name='package_list'),
+    path('packages/<int:pk>/', LessonPackageDetailView.as_view(), name='package_detail'),
+    path('packages/<int:pk>/apply/', ApplyLessonPackageView.as_view(), name='package_apply'),
 
     path('groups/', CenterGroupListView.as_view(), name='group_list'),
     path('groups/<int:pk>/', CenterGroupDetailView.as_view(), name='group_detail'),

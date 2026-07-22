@@ -111,7 +111,8 @@ class CustomerDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model  = User
         fields = ('id', 'phone', 'first_name', 'last_name', 'full_name', 'guardian_phone',
-                  'email', 'academic_year', 'student_type', 'wallet_balance', 'role',
+                  'email', 'academic_year', 'student_type', 'wallet_balance',
+                  'prepaid_lessons_remaining', 'role',
                   'date_joined', 'is_active', 'enrollments', 'orders', 'group', 'group_name')
 
     def get_full_name(self, obj):

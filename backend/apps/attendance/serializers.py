@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import AttendanceRecord, CenterGroup, PhysicalSession, PricingSettings, StudentDiscount
+from .models import AttendanceRecord, CenterGroup, LessonPackage, PhysicalSession, PricingSettings, StudentDiscount
 
 
 class PricingSettingsSerializer(serializers.ModelSerializer):
@@ -40,6 +40,12 @@ class CenterGroupSerializer(serializers.ModelSerializer):
         model  = CenterGroup
         fields = ['id', 'name_ar', 'academic_year', 'schedule_description',
                   'lesson_price_override', 'student_count']
+
+
+class LessonPackageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = LessonPackage
+        fields = ['id', 'name', 'lesson_count', 'price', 'is_active']
 
 
 class PhysicalSessionSerializer(serializers.ModelSerializer):

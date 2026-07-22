@@ -83,6 +83,25 @@ class CenterGroup(models.Model):
         return self.name_ar
 
 
+class LessonPackage(models.Model):
+    """A named, admin-defined price tier (e.g. "8 lessons — 400 EGP") a center student
+    can be sold — deducts `price` from their wallet and credits `lesson_count` onto
+    User.prepaid_lessons_remaining, which attendance marking consumes before falling
+    back to a per-lesson wallet debit."""
+    name         = models.CharField(max_length=100)
+    lesson_count = models.PositiveIntegerField()
+    price        = models.DecimalField(max_digits=10, decimal_places=2)
+    is_active    = models.BooleanField(default=True)
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'باقة حصص'
+        verbose_name_plural = 'باقات الحصص'
+
+    def __str__(self):
+        return f'{self.name} ({self.lesson_count} حصة — {self.price} ج)'
+
+
 class PhysicalSession(models.Model):
     group         = models.ForeignKey(CenterGroup, related_name='sessions', on_delete=models.CASCADE)
     date          = models.DateField()
@@ -116,6 +135,7 @@ class AttendanceRecord(models.Model):
     student        = models.ForeignKey('users.User', on_delete=models.CASCADE)
     status         = models.CharField(choices=STATUS_CHOICES, max_length=15)
     deducted       = models.BooleanField(default=False)
+    paid_via_package = models.BooleanField(default=False)
     whatsapp_sent  = models.BooleanField(default=False)
     overridden_by  = models.ForeignKey('users.User', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
     notes          = models.TextField(blank=True)
